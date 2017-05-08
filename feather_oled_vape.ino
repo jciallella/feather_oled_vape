@@ -1,8 +1,12 @@
 /*****************************************************************************
 
+<<<<<<< HEAD
   Arduino Vaporizer (Mini)
   Adafruit OLED Feather Wing
   :: Alpha Version ::
+=======
+  Vaporizer Project In Progress 4/20/2017
+>>>>>>> origin/master
 
 ******************************************************************************/
 
@@ -67,12 +71,26 @@ static const unsigned char PROGMEM  temp[]   =
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
+<<<<<<< HEAD
 #include <Filters.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
 /* Hardware */
 Adafruit_SSD1306 display = Adafruit_SSD1306();
+=======
+//#include <Filters.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+//#include <Adafruit_FeatherOLED.h>
+
+/* Fonts */
+//#include <Fonts/FreeSans9pt7b.h>
+
+/* Hardware */
+Adafruit_SSD1306 display = Adafruit_SSD1306();
+//Adafruit_FeatherOLED oled = Adafruit_FeatherOLED();
+>>>>>>> origin/master
 
 /* Pin Mapping */
 #define rdboardLED     13       // On-board LED
@@ -97,9 +115,12 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempWidth  2
 #define tempMaxHeight 13
 
+<<<<<<< HEAD
 /* Debounce / Button Hold */
 #define debounce 10             // prevent button noise
 
+=======
+>>>>>>> origin/master
 /* Temperature Variables (A) */
 int tButtonCount = 1;           // press counter
 int tButtonState = 0;           // current state
@@ -129,10 +150,18 @@ int avgVoltRead = 0;          // the average used for power
 int numReadings = 85;         // smooths readings
 
 
+<<<<<<< HEAD
 /************  SETUP  ************/
 
 void setup()
 { 
+=======
+
+/************  SETUP  ************/
+
+void setup()
+{
+>>>>>>> origin/master
   /* Set Pin Input/Output & Pullups */
   pinMode(tempButtonA, INPUT_PULLUP);
   pinMode(hitsButtonB, INPUT_PULLUP);
@@ -144,7 +173,10 @@ void setup()
 
   /* Pull-Up Resistors On/Off */
   // Nothing Here
+<<<<<<< HEAD
   avgVoltRead = voltRead; // OK Here?
+=======
+>>>>>>> origin/master
 
   /* Setup Display */
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);     // Initialize I2C addr 0x3C (for 128x32)
@@ -152,6 +184,11 @@ void setup()
   display.display();                             // Display splashscreen
   delay(1000);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
+<<<<<<< HEAD
+=======
+
+  avgVoltRead = voltRead; // Why?
+>>>>>>> origin/master
 }
 
 
@@ -194,6 +231,10 @@ void loop()
     display.display();
     delay(2000);
     display.clearDisplay();
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
     display.invertDisplay(false);
     display.setCursor(18, 13);
     display.println("Press to Wake...");
@@ -231,7 +272,10 @@ void MainMenu()
     display.println(battRead);
   }
 
+<<<<<<< HEAD
   // Battery Text Cont.
+=======
+>>>>>>> origin/master
   display.setTextSize(1);
   display.setCursor(19, 21);
   display.println("BATT");
@@ -289,6 +333,12 @@ void ButtonReader()
 
   if (tButtonState == LOW)  {
     tButtonCount++;
+<<<<<<< HEAD
+=======
+    digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
+    delay(20);
+    digitalWrite(vibeMotorPin, 0);
+>>>>>>> origin/master
   }
   if (hButtonState == LOW)  {
     hButtonCount++;
@@ -346,7 +396,11 @@ long VoltRead()
 
 /* Smooth Readings */
 void Smooth()
+<<<<<<< HEAD
 {  
+=======
+{
+>>>>>>> origin/master
   for (int i = 0; i < numReadings; i++)  {
     avgVoltRead = avgVoltRead + (voltRead - avgVoltRead) / numReadings;
   }
@@ -369,6 +423,7 @@ void LowBattery()
   if (voltRead < 2850)
   {
     for (int i = 0; i <= 5; i++)
+<<<<<<< HEAD
     Vibrate();
   }
 }
@@ -380,6 +435,15 @@ void Vibrate()
     digitalWrite(vibeMotorPin, 0);
     yield();
 }
+=======
+      digitalWrite(vibeMotorPin, 3000); // Runs vibration motor
+    delay(85);
+    yield();
+    digitalWrite(vibeMotorPin, 0);
+  }
+}
+
+>>>>>>> origin/master
 /* Check Fire Button and Turns on Heat */
 void FireCoil()
 {
@@ -395,4 +459,8 @@ void FireCoil()
   delay(10);
 }
 
+<<<<<<< HEAD
 /* End Functions */
+=======
+/* End Functions */
+>>>>>>> origin/master
