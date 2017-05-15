@@ -1,12 +1,8 @@
 /*****************************************************************************
 
-<<<<<<< HEAD
   Arduino Vaporizer (Mini)
   Adafruit OLED Feather Wing
   :: Alpha Version ::
-=======
-  Vaporizer Project In Progress 4/20/2017
->>>>>>> origin/master
 
 ******************************************************************************/
 
@@ -71,26 +67,12 @@ static const unsigned char PROGMEM  temp[]   =
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
-<<<<<<< HEAD
 #include <Filters.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
 /* Hardware */
 Adafruit_SSD1306 display = Adafruit_SSD1306();
-=======
-//#include <Filters.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-//#include <Adafruit_FeatherOLED.h>
-
-/* Fonts */
-//#include <Fonts/FreeSans9pt7b.h>
-
-/* Hardware */
-Adafruit_SSD1306 display = Adafruit_SSD1306();
-//Adafruit_FeatherOLED oled = Adafruit_FeatherOLED();
->>>>>>> origin/master
 
 /* Pin Mapping */
 #define rdboardLED     13       // On-board LED
@@ -100,9 +82,10 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define fireButtonE    00       // E. Fire Button
 #define vibeMotorPin   12       // Vibration motor
 #define mosfetPin      10       // Output to Coil Pin
+#define battPin        A1       // Monitors Voltage
 
 /* Enable / Disable */
-#define VBAT_ENABLED    0       // Disable integrated battery management
+#define VBAT_ENABLED    1       // Enable / Disable integrated batt mgmt
 
 /* Draws Battery Level in Icon */
 #define battStartX  4
@@ -115,12 +98,9 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempWidth  2
 #define tempMaxHeight 13
 
-<<<<<<< HEAD
 /* Debounce / Button Hold */
 #define debounce 10             // prevent button noise
 
-=======
->>>>>>> origin/master
 /* Temperature Variables (A) */
 int tButtonCount = 1;           // press counter
 int tButtonState = 0;           // current state
@@ -147,23 +127,16 @@ int fButtonPrev = 0;
 int battRead;                 // Mapped Voltage for LED
 int voltRead;                 // value is volts X 100, 5 vdc = 500
 int avgVoltRead = 0;          // the average used for power
-int numReadings = 85;         // smooths readings
+const int numReadings = 85;         // smooths readings
 
 
-<<<<<<< HEAD
 /************  SETUP  ************/
 
 void setup()
 { 
-=======
-
-/************  SETUP  ************/
-
-void setup()
-{
->>>>>>> origin/master
   /* Set Pin Input/Output & Pullups */
-  pinMode(tempButtonA, INPUT_PULLUP);
+  pinMode(battPin,     INPUT);
+  pinMode(tempButtonA, INPUT);
   pinMode(hitsButtonB, INPUT_PULLUP);
   pinMode(scrnButtonC, INPUT_PULLUP);
   pinMode(fireButtonE, INPUT_PULLUP);  
@@ -173,22 +146,15 @@ void setup()
 
   /* Pull-Up Resistors On/Off */
   // Nothing Here
-<<<<<<< HEAD
-  avgVoltRead = voltRead; // OK Here?
-=======
->>>>>>> origin/master
-
+  
   /* Setup Display */
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);     // Initialize I2C addr 0x3C (for 128x32)
   // display.invertDisplay(true);                // White screen logo
   display.display();                             // Display splashscreen
   delay(1000);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
-<<<<<<< HEAD
-=======
 
-  avgVoltRead = voltRead; // Why?
->>>>>>> origin/master
+  avgVoltRead = voltRead; // OK Here?
 }
 
 
@@ -196,6 +162,12 @@ void setup()
 
 void loop()
 {
+  Serial.begin(9600);
+  Serial.println(battRead);
+  Serial.println();
+  Serial.println(avgVoltRead);
+  Serial.println();
+
   // display.setRotation(2);  // Rotate Display: 0, 90, 180* or 270 degrees (0,1,2*,3)
 
   /* Battery Functions */
@@ -231,10 +203,6 @@ void loop()
     display.display();
     delay(2000);
     display.clearDisplay();
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/master
     display.invertDisplay(false);
     display.setCursor(18, 13);
     display.println("Press to Wake...");
@@ -272,10 +240,7 @@ void MainMenu()
     display.println(battRead);
   }
 
-<<<<<<< HEAD
   // Battery Text Cont.
-=======
->>>>>>> origin/master
   display.setTextSize(1);
   display.setCursor(19, 21);
   display.println("BATT");
@@ -326,19 +291,13 @@ void TempAdjust()
 /* Read Temperature Button + Haptic Feedback (Add to All buttons later) */
 void ButtonReader()
 {
-  tButtonState = digitalRead(tempButtonA);
+  tButtonState = analogRead(tempButtonA);
   hButtonState = digitalRead(hitsButtonB);
   sButtonState = digitalRead(scrnButtonC);
   fButtonState = digitalRead(fireButtonE);
 
   if (tButtonState == LOW)  {
     tButtonCount++;
-<<<<<<< HEAD
-=======
-    digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
-    delay(20);
-    digitalWrite(vibeMotorPin, 0);
->>>>>>> origin/master
   }
   if (hButtonState == LOW)  {
     hButtonCount++;
@@ -382,25 +341,34 @@ void ResetCount()
 /* Read 1.1V reference against VCC for approx battery level */
 long VoltRead()
 {
-  // set the reference to Vcc and the measurement to the internal 1.1V reference
-  ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  delay(2); // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); // Start conversion
-  while (bit_is_set(ADCSRA, ADSC)); // measuring
-  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH
-  uint8_t high = ADCH; // unlocks both
-  voltRead = (high << 8) | low;
-  voltRead = 1125300L / voltRead; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  return voltRead; // Vcc in millivolts
+      // set the reference to Vcc and the measurement to the internal 1.1V reference
+      #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+        ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+      #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+        ADMUX = _BV(MUX5) | _BV(MUX0);
+      #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+        ADMUX = _BV(MUX3) | _BV(MUX2);
+      #else
+        ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+      #endif  
+    
+      delay(2); // Wait for Vref to settle
+      ADCSRA |= _BV(ADSC); // Start conversion
+      while (bit_is_set(ADCSRA,ADSC)); // measuring
+    
+      uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH  
+      uint8_t high = ADCH; // unlocks both
+    
+      voltRead = (high<<8) | low;
+    
+      voltRead = 1125300L / voltRead; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+      return voltRead; // Vcc in millivolts
+    
 }
 
 /* Smooth Readings */
 void Smooth()
-<<<<<<< HEAD
 {  
-=======
-{
->>>>>>> origin/master
   for (int i = 0; i < numReadings; i++)  {
     avgVoltRead = avgVoltRead + (voltRead - avgVoltRead) / numReadings;
   }
@@ -423,11 +391,11 @@ void LowBattery()
   if (voltRead < 2850)
   {
     for (int i = 0; i <= 5; i++)
-<<<<<<< HEAD
     Vibrate();
   }
 }
 
+/* Haptic Feedback Function *** Will use a piezo for now *** */
 void Vibrate()
 {
     digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
@@ -435,15 +403,7 @@ void Vibrate()
     digitalWrite(vibeMotorPin, 0);
     yield();
 }
-=======
-      digitalWrite(vibeMotorPin, 3000); // Runs vibration motor
-    delay(85);
-    yield();
-    digitalWrite(vibeMotorPin, 0);
-  }
-}
 
->>>>>>> origin/master
 /* Check Fire Button and Turns on Heat */
 void FireCoil()
 {
@@ -459,8 +419,4 @@ void FireCoil()
   delay(10);
 }
 
-<<<<<<< HEAD
 /* End Functions */
-=======
-/* End Functions */
->>>>>>> origin/master
