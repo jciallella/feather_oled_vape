@@ -83,6 +83,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define vibeMotorPin   12       // Vibration motor
 #define mosfetPin      10       // Output to Coil Pin
 #define battPin        A1       // Monitors Voltage
+#define thermoPin      A2       // TMP36 Temp Sensor
 
 /* Enable / Disable */
 #define VBAT_ENABLED  1         // Enable / Disable integrated batt mgmt
@@ -129,6 +130,11 @@ int battSingleRead;           // Actual Voltage x1000
 int avgVoltRead = 0;          // the average used
 const int numReadings = 85;   // smooths voltage readings
 
+/* Temperature Variables */
+float temperatureF;           // Temperature Reading
+float avgTempRead;            // Average Temperature
+
+const float calcVolt = 3.228;
 
 /************  SETUP  ************/
 
@@ -137,6 +143,7 @@ void setup()
   /* Set Pin Input/Output & Pullups */
   pinMode(battPin,     INPUT);
   pinMode(tempButtonA, INPUT);
+  pinMode(thermoPin,   INPUT);
   pinMode(hitsButtonB, INPUT_PULLUP);
   pinMode(scrnButtonC, INPUT_PULLUP);
   pinMode(fireButtonE, INPUT_PULLUP);  
@@ -164,18 +171,26 @@ void setup()
 void loop()
 {
   Serial.begin(9600);  
-
+  
+  /* Test Readings */
+  Serial.print("Volts...");
+  Serial.println(avgVoltRead);
+  Serial.print("TempF:...");
+  Serial.println(temperatureF);
+    
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
   Smooth();                                     // Removes Jitter from Voltage Reads
   LowBattery();                                 // Haptic notification to recharge
   BattAdjust();                                 // Set Screen Readout
-  Serial.println(avgVoltRead);
 
   /* Button Functions */
   FireCoil();                                   // Heats Coil
   ButtonReader();                               // Check button presses
   ResetCount();                                 // Reset button counters
+  
+  /* Internal Functions */
+  ReadTemp();                                   // Reads Ambient Temp
 
   /* Conditionally Display Main Menu */
   if (sButtonCount <= 1) {
@@ -212,6 +227,7 @@ void loop()
     display.display();
     delay(1);
   }
+  
 }
 
 /************  FUNCTIONS  ************/
@@ -340,7 +356,7 @@ int getBatteryVoltage()
     float measuredvbat = analogRead(battPin);
 
     measuredvbat *= 2;        // we divided by 2, so multiply back
-    measuredvbat *= 3.228;    // 3.3V - Internal reference voltage
+    measuredvbat *= calcVolt;    // 3.3V - Internal reference voltage
     // measuredvbat *= 2.048; // External Reference LM4040 Breakout
     measuredvbat /= 1024;     // convert to voltage
     measuredvbat *= 1000;     // multiply by 1000 for range values
@@ -399,6 +415,32 @@ void FireCoil()
     analogWrite(mosfetPin, 0);
   }
   delay(10);
+}
+
+void ReadTemp()
+{
+ int reading = analogRead(thermoPin);  
+ float voltage = reading * calcVolt;                  // converting that reading to voltage
+ voltage /= 1024.0; 
+ 
+ //converting from 10 mv per degree wit 500 mV offset to degrees ((voltage - 500mV) times 100)
+ float temperatureC = (voltage - 0.5) * 100 ;  
+                                              
+ temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;    // Change to F
+ 
+ delay(1);                                     
+
+/*
+
+ // Smooth
+
+   for (int i = 0; i < 50; i++)  {
+    avgTempRead = avgTempRead + (temperatureF - avgTempRead) / 50;
+  }
+  delay(2);
+
+  */
+ 
 }
 
 /* End Functions */
