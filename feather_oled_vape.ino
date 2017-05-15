@@ -101,7 +101,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      10        // prevent button noise
+#define debounce      5        // prevent button noise
 
 /* Temperature Variables (A) */
 int tButtonCount = 1;           // press counter
@@ -113,6 +113,11 @@ int firePower = 0;              // power output to mosfet
 int hButtonCount = 0;
 int hButtonState = 0;
 int hButtonPrev = 0;
+
+/* Color Counter Variables */
+int chButtonCount = 1;
+int chButtonState = 0;
+int chButtonPrev = 0;
 
 /* Screen Variables      (C) */
 int sButtonCount = 0;
@@ -196,7 +201,6 @@ void loop()
   /* Button Functions */
   ButtonReader();                               // Check button presses
   ResetCount();                                 // Reset button counters
-  SetLEDColor();
 
   /* Conditionally Display Main Menu */
   if (sButtonCount <= 1) {
@@ -211,45 +215,58 @@ void loop()
     TempAdjust();
   }
 
-  if (sButtonCount == 3 && screenOff == 0 ) {
+  if (sButtonCount == 3) {
+    SecondMenu();
+  }
+
+  if (sButtonCount == 4 && screenOff == 0 ) {
     screenOff++;
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(18, 13);
     display.println("Off To Sleep...");
     display.display();
-    delay(2000);
+    delay(1200);
     display.clearDisplay();
     display.invertDisplay(false);
     display.setCursor(18, 13);
     display.println("Press to Wake...");
     display.display();
-    delay(1500);
+    delay(800);
     yield();
   }
 
-  if (sButtonCount == 4) {
-    SecondMenu();
-  }
-
-  if (sButtonCount >= 3 && screenOff == 1 ) {
+  if (sButtonCount >= 4 && screenOff == 1 ) {
     display.clearDisplay();
     display.display();
     delay(1);
   }
-
 }
 
 /************  FUNCTIONS  ************/
 
-/* Creates Main Interface  */
+/* Creates Secondary Interface  */
 void SecondMenu()
 {
+  // Internal Temperature
   display.clearDisplay();
-  
+  display.setTextSize(2);
+  display.setCursor(90, 4);
+  display.println("103");       // Change to actual temp reading "temperatureF"
+  display.setTextSize(1);
+  display.setCursor(90, 21);
+  display.println("B.TEMP");  
+
+  // LED Color 
+  display.setTextSize(1);
+  display.setCursor(5, 4);
+  display.println("LED COLOR:");       
+  display.drawFastVLine(85, 4, 26, WHITE);  
+  SetLEDColor();
+  display.display();
 }
 
-
+/* Creates Main Interface  */
 void MainMenu()
 {
   // Draw Icons & Line
@@ -306,7 +323,7 @@ void TempAdjust()
   display.fillRect(tempStartX, tempStartY + tempHeight, tempWidth, tempMaxHeight - tempHeight, 1);
 
   if (tButtonCount == 0)  {
-    display.println("OF");
+    display.println("NO");
   }
   if (tButtonCount == 1)  {
     display.println("LO");
@@ -331,8 +348,11 @@ void ButtonReader()
   if (tButtonState == LOW)  {
     tButtonCount++;
   }
-  if (hButtonState == LOW)  {
+  if (hButtonState == LOW && sButtonCount != 3)  {
     hButtonCount++;
+  }
+  if (hButtonState == LOW && sButtonCount == 3)  {
+    chButtonCount++;
   }
   if (sButtonState == LOW)  {
     sButtonCount++;
@@ -355,8 +375,11 @@ void ResetCount()
   if (tButtonState == LOW && tButtonCount > 3)  {
     tButtonCount = 0;
   }
-  if (hButtonState == LOW && hButtonCount >= 3)  {
+  if (hButtonState == LOW && hButtonCount >= 3 && sButtonState != 3)  {
     hButtonCount = 0;
+  }
+  if (sButtonCount == 3 && chButtonCount >= 8)  {
+    chButtonCount = 0;
   }
   if (sButtonState == LOW && sButtonCount >= 5)  {
     sButtonCount = 0;
@@ -462,41 +485,55 @@ void ReadTemp()
     display.setCursor(16, 13);
     display.println("TOO HOT!!! WAIT...");
     display.display();
+    setColor(255, 255, 0);
     delay(10000);
+    setColor(0, 0, 0);            // Off        
   }
 }
 
-void SetLEDColor() //Somehow store color to pull out when fire is on (h2buttoncount)
-// When s button hits 4, it adds 1 counter to h which changes menu
+void SetLEDColor()
 {
-
-  if (sButtonCount == 4 ) {
-
-    if (hButtonCount == 1) {
+  display.setTextSize(2);
+  display.setCursor(5, 14);
+  
+    if (chButtonCount == 1) {
       setColor(0, 255, 0);          // Purple
+      display.println("HAZE");
     }
-    if (hButtonCount == 2) {
+    if (chButtonCount == 2) {
       setColor(0, 0, 255);          // Aqua Blue
+      display.println("AQUA");
     }
-    if (hButtonCount == 3) {
+    if (chButtonCount == 3) {
       setColor(0, 255, 255);        // Deep Blue
+      display.println("BLUE");
     }
-    if (hButtonCount == 4) {
+    if (chButtonCount == 4) {
       setColor(255, 255, 0);        // Red
+      display.println("RED");
     }
-    if (hButtonCount == 5) {
+    if (chButtonCount == 5) {
       setColor(255, 0, 255);        // Green
+      display.println("GRASS");
     }
-    if (hButtonCount == 5) {
+    if (chButtonCount == 5) {
       setColor(255, 0, 0);          // Lime
+      display.println("LIME");
+    }
+    if (chButtonCount == 6) {
+      setColor(0, 0, 0);            // Off
+      display.println("OFF");
+    }    
+    if (chButtonCount == 7) {
+      setColor(80, 0, 80);          // White
+      display.println("WHITE");
     }
     else {
       setColor(80, 0, 80);          // White
+      display.println("WHITE");
     }
-
-    delay(1);
-
-  }
+    display.display();
+    delay(1);  
 }
 
 void setColor(int red, int green, int blue)
@@ -506,7 +543,6 @@ void setColor(int red, int green, int blue)
   green = 255 - green;
   blue = 255 - blue;
 #endif
-
   analogWrite(fireRpin, red);
   analogWrite(fireGpin, green);
   analogWrite(fireBpin, blue);
