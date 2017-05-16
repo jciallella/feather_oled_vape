@@ -102,7 +102,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      2        // prevent button noise
+#define debounce      4        // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
@@ -187,10 +187,10 @@ void loop()
 {
   /* Test Readings */
   Serial.begin(9600);
- // Serial.print("Volts...");
- // Serial.println(avgVoltRead);
+  Serial.print("Volts...");
+  Serial.println(avgVoltRead);
   Serial.print("TempF:...");
-  Serial.println(temperatureF);
+  Serial.println(avgTempRead);
   Serial.println(avgTempRead);
 
   /* Internal Functions */
@@ -199,6 +199,7 @@ void loop()
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
   Smooth();                                     // Removes Jitter from Voltage Reads
+  BattAdjust();                                 // Set Screen Readout      
   LowBattery();                                 // Haptic notification to recharge
 
   /* Button Functions */
@@ -214,7 +215,7 @@ void loop()
       MainMenu();               // Render screen icons & text
       TempAdjust();
       ledOff();
-      BattAdjust();                                 // Set Screen Readout      
+
     }
     if (sButtonCount == 2) {
       display.invertDisplay(true);
@@ -333,8 +334,6 @@ void SetLEDColor()
 /* Creates Main Interface  */
 void MainMenu()
 {
-  battRead == 3000;
-
   // Draw Icons & Line
   display.drawBitmap(2, 4,  batt, 12, 24, 1);
   display.drawBitmap(48, 4,  temp, 12, 25, 1);
@@ -355,7 +354,7 @@ void MainMenu()
     display.println("NO");
   }
   else {
-    //    display.println(battRead);   ////// Problem Line here -- lets check with Vdiver in place
+        display.println(battRead);   ////// Problem Line here -- lets check with Vdiver in place
   }
 
   // Battery Text Cont.
