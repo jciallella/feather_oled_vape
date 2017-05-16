@@ -1,7 +1,7 @@
 /*****************************************************************************
 
   Arduino Vaporizer (Mini)
-  Adafruit OLED Feather Wing
+  Adafruit OLED Feather Wing & Adafruit Feather Proto 32u
   :: Alpha Version ::
 
 ******************************************************************************/
@@ -66,8 +66,10 @@ static const unsigned char PROGMEM  temp[]   =
 /* Includes */
 #include <SPI.h>
 #include <Wire.h>
+#include <EEPROM.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+
 
 /* Hardware */
 Adafruit_SSD1306 display = Adafruit_SSD1306();
@@ -116,7 +118,7 @@ int hButtonState = 0;
 int hButtonPrev = 0;
 
 /* Color Counter Variables (C2) */
-int chButtonCount = 6;
+int chButtonCount;
 int chButtonState = 0;
 int chButtonPrev = 0;
 
@@ -132,18 +134,19 @@ int fButtonState = 0;
 int fButtonPrev = 0;
 
 /* Battery Calculations */
-int battRead;                 // Mapped Voltage for LED
-int battSingleRead;           // Actual Voltage x1000
-int avgVoltRead = 0;          // the average used
-const int numReadings = 85;   // smooths voltage readings
-const float calcVolt = 3.228; // Tested Board Voltage
+int battRead;                       // Mapped Voltage for LED
+int battSingleRead;                 // Actual Voltage x1000
+int avgVoltRead = 0;                // the average used
+const int numReadings = 85;         // smooths voltage readings
+const float calcVolt = 3.228;       // Tested Board Voltage
 
 /* Temperature Variables */
-float temperatureF;           // Temperature Reading
-int avgTempRead;            // Average Temperature
+float temperatureF;                 // Temperature Reading
+int avgTempRead;                    // Average Temperature
 
 /* LED Variables */
-int ledBright = 255;
+// int ledBright = 255;
+int epAddress = 0;
 
 /************  SETUP  ************/
 
@@ -162,8 +165,8 @@ void setup()
   pinMode(fireRpin,     OUTPUT);
   pinMode(fireGpin,     OUTPUT);
   pinMode(fireBpin,     OUTPUT);
-  pinMode(fireButtonLED,OUTPUT);
-    
+  pinMode(fireButtonLED, OUTPUT);
+
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
 
@@ -176,6 +179,8 @@ void setup()
   display.display();                             // Display splashscreen
   delay(1000);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
+
+  chButtonCount = EEPROM.read(epAddress);         // Reads EEPROM for LED Color
 
   ledOff();                                      // Turn off LED (Clear Color) (Need to set color in EEPROM)
 }
@@ -191,7 +196,10 @@ void loop()
   Serial.println(avgVoltRead);
   Serial.print("TempF:...");
   Serial.println(avgTempRead);
-  Serial.println(avgTempRead);
+  Serial.print("EEPROM Value:");
+  Serial.println(chButtonCount);
+  
+
 
   /* Internal Functions */
   ReadTemp();                                   // Reads Ambient Temp
@@ -199,21 +207,21 @@ void loop()
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
   Smooth();                                     // Removes Jitter from Voltage Reads
-  BattAdjust();                                 // Set Screen Readout      
+  BattAdjust();                                 // Set Screen Readout
   LowBattery();                                 // Haptic notification to recharge
 
   /* Button Functions */
   ButtonReader();                               // Check button presses
   ResetCount();                                 // Reset button counters
-
+  WriteEEPROM();                                // Saves Information 
 
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
   {
     if (sButtonCount <= 1) {
       display.invertDisplay(false);
-      MainMenu();               // Render screen icons & text
-      TempAdjust();
+      MainMenu();                               // Render screen icons & text
+      TempAdjust();                             // Render "Mercury" in thermometer icon
       ledOff();
 
     }
@@ -264,12 +272,7 @@ void ThirdMenu()
   display.println("BATTERY TEMP:");
   display.setTextSize(2);
   display.setCursor(86, 8);
-  display.print(avgTempRead);       
-  //display.println("*");
-  //display.setTextSize(1);
-  //display.setCursor(5, 19);
-  //display.println("[ SAFE TEMP ]");
-
+  display.print(avgTempRead);
   display.display();
 }
 
@@ -354,7 +357,7 @@ void MainMenu()
     display.println("NO");
   }
   else {
-        display.println(battRead);   ////// Problem Line here -- lets check with Vdiver in place
+    display.println(battRead);
   }
 
   // Battery Text Cont.
@@ -428,12 +431,12 @@ void ButtonReader()
   if (fButtonState == LOW)  {
     fButtonCount++;
   }
-  
+
   if (fButtonState == LOW) {    // Needs to hold
     FireCoil();
   }
   else {
-        analogWrite(mosfetPin, 0);
+    analogWrite(mosfetPin, 0);
   }
   delay(1);
 }
@@ -527,7 +530,7 @@ void FireCoil() // Fix the pin #'s
 
     firePower = map(tButtonCount, 1, 3, 100, 255);
     analogWrite(mosfetPin, firePower);
-    analogWrite(fireBpin, 100);
+    analogWrite(fireBpin, 100);       // Temporary LED Color
     // setColor (color, color, color)     // Turn on LED
     // Turn on button LED too (second code)
   }
@@ -558,7 +561,10 @@ void ReadTemp()
 
   delay(1);
 
-  if (temperatureF >= 150) {
+  if (temperatureF >= 180) {
+
+    analogWrite(mosfetPin, 0);
+
     display.clearDisplay();
     display.invertDisplay(true);
     display.setCursor(13, 13);
@@ -592,4 +598,26 @@ void setColor(int red, int green, int blue)
   analogWrite(fireBpin, blue);
 }
 
+void WriteEEPROM()
+{
+  int val = chButtonCount;
+
+  // int val = analogRead(0) / 4;         // Divide by 4 to convert to analog [if digital]
+  EEPROM.write(epAddress, val);           // Write value to the appropriate byte of the EEPROM
+
+  // Advance to the next address, when at the end restart at the beginning *For Compatibility*
+  epAddress = epAddress + 1;
+  if (epAddress == EEPROM.length()) {
+    epAddress = 0;
+  }
+
+  delay(100);
+
+  /*** Note:
+    As the EEPROM sizes are powers of two, wrapping (preventing overflow) of an
+    EEPROM address is also doable by a bitwise and of the length - 1.
+    ++addr &= EEPROM.length() - 1;
+  ***/
+}
+  
 /* End Functions */
