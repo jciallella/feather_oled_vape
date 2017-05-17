@@ -75,6 +75,7 @@ static const unsigned char PROGMEM  temp[]   =
 Adafruit_SSD1306 display = Adafruit_SSD1306();
 
 /* Pin Mapping */
+#define inPin          12       // Change Later
 #define fireButtonE    12       // E. Fire Button
 #define scrnButtonC    5        // C. Screen Power
 #define hitsButtonB    6        // B. Resets Hits       [ 6 = Pin A7]
@@ -129,7 +130,7 @@ int sButtonPrev = 0;
 int screenOff = 0;
 
 /* Fire Button Variables   (E) */
-int fButtonCount = 25;
+int fButtonCount = 0;
 int fButtonState = 0;
 int fButtonPrev = 0;
 
@@ -147,6 +148,15 @@ int avgTempRead;                    // Average Temperature
 /* LED Variables */
 // int ledBright = 255;
 int epAddress = 0;
+
+/* Held Button Variables */
+int current;                         // Current state of the button (LOW is pressed b/c i'm using pullup resistors)
+long millis_held;                    // How long the button was held (milliseconds)
+long secs_held;                      // How long the button was held (seconds)
+long prev_secs_held;                 // How long the button was held in the previous check
+byte previous = HIGH;
+unsigned long firstTime;             // how long since the button was first pressed
+
 
 /************  SETUP  ************/
 
@@ -166,6 +176,8 @@ void setup()
   pinMode(fireGpin,     OUTPUT);
   pinMode(fireBpin,     OUTPUT);
   pinMode(fireButtonLED, OUTPUT);
+
+  digitalWrite(inPin, HIGH);  // Turn on 20k pullup resistors to simplify switch input
 
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
@@ -198,8 +210,6 @@ void loop()
   Serial.println(avgTempRead);
   Serial.print("EEPROM Value:");
   Serial.println(chButtonCount);
-  
-
 
   /* Internal Functions */
   ReadTemp();                                   // Reads Ambient Temp
@@ -212,8 +222,9 @@ void loop()
 
   /* Button Functions */
   ButtonReader();                               // Check button presses
+  HoldButton();
   ResetCount();                                 // Reset button counters
-  WriteEEPROM();                                // Saves Information 
+  WriteEEPROM();                                // Saves Information
 
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
@@ -428,16 +439,14 @@ void ButtonReader()
   if (sButtonState == LOW)  {
     sButtonCount++;
   }
-  if (fButtonState == LOW)  {
-    fButtonCount++;
-  }
-
-  if (fButtonState == LOW) {    // Needs to hold
+  
+  if (fButtonState == LOW) {
     FireCoil();
   }
   else {
     analogWrite(mosfetPin, 0);
   }
+  
   delay(1);
 }
 
@@ -611,7 +620,7 @@ void WriteEEPROM()
     epAddress = 0;
   }
 
-  delay(100);
+  delay(10);
 
   /*** Note:
     As the EEPROM sizes are powers of two, wrapping (preventing overflow) of an
@@ -619,5 +628,33 @@ void WriteEEPROM()
     ++addr &= EEPROM.length() - 1;
   ***/
 }
-  
+
+void HoldButton()
+{
+  current = digitalRead(inPin);
+
+  // if the button state changes to pressed, remember the start time
+  if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
+    firstTime = millis();
+  }
+
+  millis_held = (millis() - firstTime);
+  secs_held = millis_held / 1000;
+
+  // This if statement is a basic debouncing tool, the button must be pushed for at least
+  // 100 milliseconds in a row for it to be considered as a push.
+  if (millis_held > 50) {
+
+    if (current == HIGH && previous == LOW) {       // check if button was released since last check
+
+      if (secs_held >= 1) {               // Button held for more than 3 seconds
+        fButtonCount++;
+      }
+    }
+  }
+  previous = current;
+  prev_secs_held = secs_held;
+}
+
+
 /* End Functions */
