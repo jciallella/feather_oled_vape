@@ -75,7 +75,6 @@ static const unsigned char PROGMEM  temp[]   =
 Adafruit_SSD1306 display = Adafruit_SSD1306();
 
 /* Pin Mapping */
-#define inPin          12       // Change Later
 #define fireButtonE    12       // E. Fire Button
 #define scrnButtonC    5        // C. Screen Power
 #define hitsButtonB    6        // B. Resets Hits       [ 6 = Pin A7]
@@ -105,7 +104,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      4        // prevent button noise
+#define debounce      20        // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
@@ -146,8 +145,10 @@ float temperatureF;                 // Temperature Reading
 int avgTempRead;                    // Average Temperature
 
 /* LED Variables */
-// int ledBright = 255;
 int epAddress = 0;
+int colorR;
+int colorG;
+int colorB;
 
 /* Held Button Variables */
 int current;                         // Current state of the button (LOW is pressed b/c i'm using pullup resistors)
@@ -177,8 +178,6 @@ void setup()
   pinMode(fireBpin,     OUTPUT);
   pinMode(fireButtonLED, OUTPUT);
 
-  digitalWrite(inPin, HIGH);  // Turn on 20k pullup resistors to simplify switch input
-
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
 
@@ -194,7 +193,7 @@ void setup()
 
   chButtonCount = EEPROM.read(epAddress);         // Reads EEPROM for LED Color
 
-  ledOff();                                      // Turn off LED (Clear Color) (Need to set color in EEPROM)
+  ledOff();                                      // Turn off LED (Clear Color)
 }
 
 
@@ -234,7 +233,6 @@ void loop()
       MainMenu();                               // Render screen icons & text
       TempAdjust();                             // Render "Mercury" in thermometer icon
       ledOff();
-
     }
     if (sButtonCount == 2) {
       display.invertDisplay(true);
@@ -246,30 +244,33 @@ void loop()
     }
     if (sButtonCount == 4) {
       ThirdMenu();
+      ledOff();
     }
     if (sButtonCount == 5 && screenOff == 0 ) {
       screenOff++;
+      ledOff();
       display.clearDisplay();
       display.setTextSize(1);
       display.setCursor(18, 13);
       display.println("Off To Sleep...");
       display.display();
-      delay(1200);
+      delay(800);
       display.clearDisplay();
       display.invertDisplay(false);
       display.setCursor(18, 13);
       display.println("Press to Wake...");
       display.display();
-      delay(800);
+      delay(700);
       yield();
     }
     if (sButtonCount >= 5 && screenOff == 1 ) {
       display.clearDisplay();
       display.display();
-      delay(1);
+      delay(1);      
     }
   }
-}
+
+} /* End Program */
 
 /************  FUNCTIONS  ************/
 
@@ -305,33 +306,49 @@ void SetLEDColor()
   display.setTextSize(2);
   display.setCursor(3, 14);
 
+  colorR = 0;
+  colorG = 0;
+  colorB = 0;
+
   if (chButtonCount == 0) {
-    setColor(0, 255, 0);          // Purple
+    setColor(0, 255, 0);                // Purple
     display.println("PURP HAZE");
+    colorG = 255;
   }
   if (chButtonCount == 1) {
-    setColor(0, 0, 255);          // Green
+    setColor(0, 0, 255);                // Green
     display.println("MOJITOS");
+    colorB = 0;
   }
   if (chButtonCount == 2) {
-    setColor(0, 255, 255);        // Red
+    setColor(0, 255, 255);              // Red
     display.println("WATERMELON");
+    colorG = 255;
+    colorB = 255;
   }
   if (chButtonCount == 3) {
-    setColor(255, 255, 0);        // Mid-Blue [ DEEP WATER ]
+    setColor(255, 255, 0);              // Mid-Blue [ DEEP WATER ]
     display.println("OCEANIC");
+    colorR = 255;
+    colorG = 255;
   }
   if (chButtonCount == 4) {
-    setColor(255, 0, 255);        // Green [ NEW GRASS, FOREST ]
+    setColor(255, 0, 255);              // Green [ NEW GRASS, FOREST ]
     display.println("CANOPY");
+    colorR = 255;
+    colorB = 255;
   }
   if (chButtonCount == 5) {
-    setColor(255, 0, 0);          // Light Blue [ICE]
+    setColor(255, 0, 0);                // Light Blue [ICE]
     display.println("GLACIER");
+    colorR = 255;
   }
   if (chButtonCount == 6) {
-    setColor(80, 0, 80);          // White [GHOST, SEAGLASS, CLOUD, MINT]
+    setColor(80, 0, 80);                // White [GHOST, SEAGLASS, CLOUD, MINT]
     display.println("SEAGLASS");
+    colorR = 255;
+    colorB = 255;
+    colorB = 255;                       // Not sure if I need to store a color or not here
   }
   if (chButtonCount == 7) {
     ledOff();            // Off
@@ -341,7 +358,9 @@ void SetLEDColor()
       setColor(80, 0, 80);          // White
       display.println("WHITE");
     } */
+
   display.display();
+
   delay(1);
 }
 
@@ -439,14 +458,14 @@ void ButtonReader()
   if (sButtonState == LOW)  {
     sButtonCount++;
   }
-  
+
   if (fButtonState == LOW) {
     FireCoil();
   }
   else {
     analogWrite(mosfetPin, 0);
   }
-  
+
   delay(1);
 }
 
@@ -539,9 +558,10 @@ void FireCoil() // Fix the pin #'s
 
     firePower = map(tButtonCount, 1, 3, 100, 255);
     analogWrite(mosfetPin, firePower);
-    analogWrite(fireBpin, 100);       // Temporary LED Color
+    analogWrite(fireRpin, colorR);       // Temporary LED Color
+    analogWrite(fireGpin, colorG);
+    analogWrite(fireBpin, colorB);
     // setColor (color, color, color)     // Turn on LED
-    // Turn on button LED too (second code)
   }
 
   else  {
@@ -609,10 +629,11 @@ void setColor(int red, int green, int blue)
 
 void WriteEEPROM()
 {
-  int val = chButtonCount;
-
-  // int val = analogRead(0) / 4;         // Divide by 4 to convert to analog [if digital]
-  EEPROM.write(epAddress, val);           // Write value to the appropriate byte of the EEPROM
+  // int val = analogRead(0) / 4;            // Divide by 4 to convert to analog [if digital]
+  EEPROM.write(epAddress, chButtonCount);    // Write value to the appropriate byte of the EEPROM
+  EEPROM.write(epAddress, colorR);
+  EEPROM.write(epAddress, colorG);
+  EEPROM.write(epAddress, colorB);
 
   // Advance to the next address, when at the end restart at the beginning *For Compatibility*
   epAddress = epAddress + 1;
@@ -631,7 +652,7 @@ void WriteEEPROM()
 
 void HoldButton()
 {
-  current = digitalRead(inPin);
+  current = digitalRead(fireButtonE);
 
   // if the button state changes to pressed, remember the start time
   if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
@@ -647,7 +668,7 @@ void HoldButton()
 
     if (current == HIGH && previous == LOW) {       // check if button was released since last check
 
-      if (secs_held >= 1) {               // Button held for more than 3 seconds
+      if (secs_held >= .5) {               // Button held for more than 3 seconds
         fButtonCount++;
       }
     }
@@ -655,6 +676,5 @@ void HoldButton()
   previous = current;
   prev_secs_held = secs_held;
 }
-
 
 /* End Functions */
