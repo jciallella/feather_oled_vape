@@ -81,6 +81,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempButtonA    9        // A. Sets Temperature  [ 9 = Pin A9]
 #define vibeMotorPin   11       // Vibration motor
 #define rdboardLED     13       // On-board LED
+#define motionPin      A0       //
 #define battPin        A1       // Monitors Voltage
 #define thermoPin      A2       // TMP36 Temp Sensor
 #define fireRpin       A3       //           Red
@@ -158,6 +159,9 @@ long prev_secs_held;                 // How long the button was held in the prev
 byte previous = HIGH;
 unsigned long firstTime;             // how long since the button was first pressed
 
+/* Motion Sensor */
+int mSensor;
+
 
 /************  SETUP  ************/
 
@@ -169,6 +173,7 @@ void setup()
   pinMode(battPin,      INPUT);
   pinMode(tempButtonA,  INPUT);
   pinMode(thermoPin,    INPUT);
+  pinMode(motionPin,    INPUT);
   pinMode(fireButtonE,  INPUT);
   pinMode(rdboardLED,   OUTPUT);                  //  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(mosfetPin,    OUTPUT);
@@ -191,7 +196,7 @@ void setup()
   delay(1000);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
 
-  chButtonCount = EEPROM.read(epAddress);         // Reads EEPROM for LED Color
+  chButtonCount = EEPROM.read(epAddress);        // Reads EEPROM for LED Color
 
   ledOff();                                      // Turn off LED (Clear Color)
 }
@@ -201,7 +206,7 @@ void setup()
 
 void loop()
 {
-  /* Test Readings */
+  /* Test Readings 
   Serial.begin(9600);
   Serial.print("Volts...");
   Serial.println(avgVoltRead);
@@ -212,6 +217,7 @@ void loop()
 
   /* Internal Functions */
   ReadTemp();                                   // Reads Ambient Temp
+  MotionPower();
 
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
@@ -224,7 +230,7 @@ void loop()
   HoldButton();
   ResetCount();                                 // Reset button counters
   WriteEEPROM();                                // Saves Information
-
+  
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
   {
@@ -675,6 +681,22 @@ void HoldButton()
   }
   previous = current;
   prev_secs_held = secs_held;
+}
+
+void MotionPower()
+{
+  mSensor = analogRead(motionPin);
+  
+  if (mSensor<1022){                       // While sensor is not moving, analog pin receive 1023~1024 value
+    Serial.print("Sensor Value: ");
+    Serial.println(mSensor);
+  }
+  
+  else{ 
+    Serial.print("Sensor Value: ");
+    Serial.println("NOWLOW");
+  }  
+delay(1);
 }
 
 /* End Functions */
