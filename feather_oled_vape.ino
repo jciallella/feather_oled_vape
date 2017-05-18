@@ -63,13 +63,18 @@ static const unsigned char PROGMEM  temp[]   =
   0b00111111, 0b11000000, //   ########
 };
 
+/* ===========================================================================================*/
+/*   
+/     INCLUDES / DEFINITIONS
+/* 
+/* ===========================================================================================*/
+
 /* Includes */
 #include <SPI.h>
 #include <Wire.h>
 #include <EEPROM.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
 
 /* Hardware */
 Adafruit_SSD1306 display = Adafruit_SSD1306();
@@ -80,7 +85,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define hitsButtonB    6        // B. Resets Hits       [ 6 = Pin A7]
 #define tempButtonA    9        // A. Sets Temperature  [ 9 = Pin A9]
 #define vibeMotorPin   11       // Vibration motor
-#define rdboardLED     13       // On-board LED
+//#define rdboardLED     13       // On-board LED
 #define motionPin      A0       //
 #define battPin        A1       // Monitors Voltage
 #define thermoPin      A2       // TMP36 Temp Sensor
@@ -139,20 +144,20 @@ int battRead;                       // Mapped Voltage for LED
 int battSingleRead;                 // Actual Voltage x1000
 int avgVoltRead = 0;                // the average used
 const int numReadings = 85;         // smooths voltage readings
-const float calcVolt = 3.228;       // Tested Board Voltage
+const float calcVolt = 3.3;       // Tested Board Voltage [3.228]
 
 /* Temperature Variables */
 float temperatureF;                 // Temperature Reading
 int avgTempRead;                    // Average Temperature
 
 /* LED Variables */
-int epAddress = 0;
+int epAddress = 0;                  // Current EEPROM Address / byte
 int colorR;
 int colorG;
 int colorB;
 
 /* Held Button Variables */
-int current;                         // Current state of the button (LOW is pressed b/c i'm using pullup resistors)
+int current;                         // Current state of the button (LOW = Pressed for pullup resistors)
 long millis_held;                    // How long the button was held (milliseconds)
 long secs_held;                      // How long the button was held (seconds)
 long prev_secs_held;                 // How long the button was held in the previous check
@@ -161,9 +166,13 @@ unsigned long firstTime;             // how long since the button was first pres
 
 /* Motion Sensor */
 int mSensor;
+int avgMRead;
 
-
-/************  SETUP  ************/
+/* ===========================================================================================*/
+/*   
+/     SETUP PROGRAM
+/* 
+/* ===========================================================================================*/
 
 void setup()
 {
@@ -175,7 +184,7 @@ void setup()
   pinMode(thermoPin,    INPUT);
   pinMode(motionPin,    INPUT);
   pinMode(fireButtonE,  INPUT);
-  pinMode(rdboardLED,   OUTPUT);                  //  pinMode(LED_BUILTIN, OUTPUT);
+//  pinMode(rdboardLED,   OUTPUT);                  //  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(mosfetPin,    OUTPUT);
   pinMode(vibeMotorPin, OUTPUT);
   pinMode(fireRpin,     OUTPUT);
@@ -183,41 +192,52 @@ void setup()
   pinMode(fireBpin,     OUTPUT);
   pinMode(fireButtonLED, OUTPUT);
 
+  /* Pin States */
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
 
   /* Setup Display */
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);     // Initialize I2C addr 0x3C (for 128x32)
-
-  // display.invertDisplay(true);                // White screen logo
   display.setRotation(2);                        // Rotate Display: 0, 90, 180 or 270* (0,1,2,3)
-
+  // display.invertDisplay(true);                // White screen logo
   display.display();                             // Display splashscreen
-  delay(1000);                                   // Time to display splash screen
+  delay(750);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
 
+  /* Read from Memory */
   chButtonCount = EEPROM.read(epAddress);        // Reads EEPROM for LED Color
+  colorR =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
+  colorG =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
+  colorB =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
 
+  /* Functions */
   ledOff();                                      // Turn off LED (Clear Color)
 }
 
-
-/************  PROGRAM  ************/
+/* ===========================================================================================*/
+/*   
+/*    MAIN PROGRAM:  1/2 - Execute Functions
+/* 
+/* ===========================================================================================*/
 
 void loop()
 {
-  /* Test Readings 
+  /* Start PC Communications */
   Serial.begin(9600);
+
+  /* Test Readings */
   Serial.print("Volts...");
   Serial.println(avgVoltRead);
   Serial.print("TempF:...");
   Serial.println(avgTempRead);
-  Serial.print("EEPROM Value:");
+  Serial.print("EEPROM Value(s):");
   Serial.println(chButtonCount);
+  Serial.print("Motion Sense Level:");
+  Serial.println(mSensor);
 
   /* Internal Functions */
   ReadTemp();                                   // Reads Ambient Temp
-  MotionPower();
+  VibrationSensor();                            // For physical handling of device
 
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
@@ -230,6 +250,12 @@ void loop()
   HoldButton();
   ResetCount();                                 // Reset button counters
   WriteEEPROM();                                // Saves Information
+
+/* ===========================================================================================*/
+/*   
+/*    MAIN PROGRAM:  2/2 - Display Menus
+/* 
+/* ===========================================================================================*/
   
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
@@ -278,7 +304,73 @@ void loop()
 
 } /* End Program */
 
-/************  FUNCTIONS  ************/
+/* ===========================================================================================*/
+/*   
+/*    FUNCTIONS:  1/4 - Menu Functions
+/* 
+/* ===========================================================================================*/
+
+/* Creates Main Interface  */
+void MainMenu()
+{
+  // Draw Icons & Line
+  display.drawBitmap(2, 4,  batt, 12, 24, 1);
+  display.drawBitmap(48, 4,  temp, 12, 25, 1);
+  display.drawFastVLine(95, 4, 26, WHITE);
+
+  // Battery Text
+  display.setTextColor(WHITE);
+  display.setTextSize(2);
+  display.setCursor(19, 4);
+
+  if (battRead >= 95) {
+    display.println("FL");
+  }
+  if (battRead >= 1 && battRead <= 15) {
+    display.println("LO");
+  }
+  if (battRead < 0) {
+    display.println("NO");
+  }
+  else {
+    display.println(battRead);
+  }
+
+  // Battery Text Cont.
+  display.setTextSize(1);
+  display.setCursor(19, 21);
+  display.println("BATT");
+
+  // Temp Text
+  display.setTextSize(1);
+  display.setCursor(66, 21);
+  display.println("TEMP");
+
+  // Puffs Text
+  display.setTextColor(WHITE);
+  display.setTextSize(2);
+  display.setCursor(101, 4);
+  display.println(fButtonCount);
+  display.setTextSize(1);
+  display.setCursor(101, 21);
+  display.println("HITS");
+
+  display.display();
+  display.clearDisplay();
+}
+
+/* Creates Secondary Interface  */
+void SecondMenu()
+{
+  // LED Color
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(3, 4);
+  display.println("LED COLOR:");
+
+  SetLEDColor();              // Sets fire LED Color
+  display.display();
+}
 
 /* Creates Tertiary Interface  */
 void ThirdMenu()
@@ -294,18 +386,98 @@ void ThirdMenu()
   display.display();
 }
 
-/* Creates Secondary Interface  */
-void SecondMenu()
-{
-  // LED Color
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(3, 4);
-  display.println("LED COLOR:");
 
-  SetLEDColor();              // Sets fire LED Color
-  display.display();
+/* ===========================================================================================*/
+/*   
+/*    FUNCTIONS:  2/4 - Buttons
+/* 
+/* ===========================================================================================*/
+
+/* Read Temperature Button + Haptic Feedback (Add to All buttons later) */
+void ButtonReader()
+{
+  tButtonState = analogRead(tempButtonA);
+  hButtonState = digitalRead(hitsButtonB);
+  sButtonState = digitalRead(scrnButtonC);
+  fButtonState = digitalRead(fireButtonE);
+
+  if (tButtonState == LOW)  {
+    tButtonCount++;
+  }
+  if (hButtonState == LOW && sButtonCount != 3)  {
+    hButtonCount++;   // This needs debounce
+  }
+  if (hButtonState == LOW && sButtonCount == 3)  {
+    chButtonCount++;
+  }
+  if (sButtonState == LOW)  {
+    sButtonCount++;
+  }
+
+  if (fButtonState == LOW) {
+    FireCoil();
+  }
+  else {
+    analogWrite(mosfetPin, 0);
+  }
+
+  delay(1);
 }
+
+/* Reset Button Counts */
+void ResetCount()
+{
+  if (fButtonCount >= 99 || hButtonCount >= 3)  {
+    fButtonCount = 0;
+  }
+  if (tButtonState == LOW && tButtonCount > 3)  {
+    tButtonCount = 0;
+  }
+  if (hButtonState == LOW && hButtonCount >= 3 && sButtonState != 3)  {
+    hButtonCount = 0;
+  }
+  if (sButtonCount == 3 && chButtonCount >= 8)  {
+    chButtonCount = 0;
+  }
+  if (sButtonState == LOW && sButtonCount >= 6)  {
+    sButtonCount = 0;
+    screenOff = 0;
+  }
+}
+
+void HoldButton()
+{
+  current = digitalRead(fireButtonE);
+
+  // if the button state changes to pressed, remember the start time
+  if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
+    firstTime = millis();
+  }
+
+  millis_held = (millis() - firstTime);
+  secs_held = millis_held / 1000;
+
+  // The basic debouncing tool. Button must be pushed for at least
+  // 100 milliseconds in a row to be considered as a push.
+  if (millis_held > 50) {
+
+    if (current == HIGH && previous == LOW) {       // check if button was released since last check
+
+      if (secs_held >= .3) {               // Button held for more than 3 seconds
+        fButtonCount++;
+      }
+    }
+  }
+  previous = current;
+  prev_secs_held = secs_held;
+}
+
+
+/* ===========================================================================================*/
+/*   
+/*    FUNCTIONS 3/4 - External Functions
+/* 
+/* ===========================================================================================*/
 
 void SetLEDColor()
 {
@@ -360,63 +532,29 @@ void SetLEDColor()
     ledOff();            // Off
     display.println("OFF");
   }
-  /*  else {
-      setColor(80, 0, 80);          // White
-      display.println("WHITE");
-    } */
 
   display.display();
 
   delay(1);
 }
 
-/* Creates Main Interface  */
-void MainMenu()
+/* Haptic Feedback as Low Battery Warning */
+void LowBattery()
 {
-  // Draw Icons & Line
-  display.drawBitmap(2, 4,  batt, 12, 24, 1);
-  display.drawBitmap(48, 4,  temp, 12, 25, 1);
-  display.drawFastVLine(95, 4, 26, WHITE);
-
-  // Battery Text
-  display.setTextColor(WHITE);
-  display.setTextSize(2);
-  display.setCursor(19, 4);
-
-  if (battRead >= 95) {
-    display.println("FL");
+  if (avgVoltRead < 2850)
+  {
+    for (int i = 0; i <= 5; i++)
+      Vibrate();
   }
-  if (battRead >= 1 && battRead <= 15) {
-    display.println("LO");
-  }
-  if (battRead < 0) {
-    display.println("NO");
-  }
-  else {
-    display.println(battRead);
-  }
+}
 
-  // Battery Text Cont.
-  display.setTextSize(1);
-  display.setCursor(19, 21);
-  display.println("BATT");
-
-  // Temp Text
-  display.setTextSize(1);
-  display.setCursor(66, 21);
-  display.println("TEMP");
-
-  // Puffs Text
-  display.setTextColor(WHITE);
-  display.setTextSize(2);
-  display.setCursor(101, 4);
-  display.println(fButtonCount);
-  display.setTextSize(1);
-  display.setCursor(101, 21);
-  display.println("HITS");
-
-  display.display();
-  display.clearDisplay();
+/* Haptic Feedback Function *** Will use a piezo for now *** */
+void Vibrate()
+{
+  digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
+  delay(20);
+  digitalWrite(vibeMotorPin, 0);
+  yield();
 }
 
 /* Adjusts Screen OF/HI/MD/LO (via Button A) */
@@ -444,57 +582,78 @@ void TempAdjust()
   delay(1);
 }
 
-/* Read Temperature Button + Haptic Feedback (Add to All buttons later) */
-void ButtonReader()
+/* Piezeo sensor checks for motion */
+void VibrationSensor()
 {
-  tButtonState = analogRead(tempButtonA);
-  hButtonState = digitalRead(hitsButtonB);
-  sButtonState = digitalRead(scrnButtonC);
-  fButtonState = digitalRead(fireButtonE);
+  mSensor = 0;
+  mSensor = analogRead(motionPin);
 
-  if (tButtonState == LOW)  {
-    tButtonCount++;
-  }
-  if (hButtonState == LOW && sButtonCount != 3)  {
-    hButtonCount++;   // This needs debounce
-  }
-  if (hButtonState == LOW && sButtonCount == 3)  {
-    chButtonCount++;
-  }
-  if (sButtonState == LOW)  {
-    sButtonCount++;
+  if (mSensor <= 700)  {
+    // Do this thing -- wake on interrupt? / go to sleep
+    setColor(255, 255, 0);
+    delay(1);
+    setColor(255,255,255);
+
+/*
+    // if wake from sleep do this (Need sleep code)
+    display.clearDisplay();
+    display.invertDisplay(false);
+    display.setCursor(13, 13);
+    display.println("Care to Partake?");
+    display.display();
+    display.clearDisplay();        
   }
 
-  if (fButtonState == LOW) {
-    FireCoil();
+*/ 
+  delay(1); 
+}
+
+/* Check Fire Button and Turns on Heat */
+void FireCoil() // Fix the pin #'s
+{
+  if (fButtonCount >= 1)  {
+    display.clearDisplay();
+    display.invertDisplay(true);
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(18, 9);
+    display.println("FIRE UP!");
+    display.display();
+
+    digitalWrite(fireButtonLED, HIGH);
+
+    firePower = map(tButtonCount, 1, 3, 100, 255);
+    analogWrite(mosfetPin, firePower);
+    analogWrite(fireRpin, colorR);       // Temporary LED Color
+    analogWrite(fireGpin, colorG);
+    analogWrite(fireBpin, colorB);
+    // setColor (color, color, color)     // Turn on LED
   }
-  else {
+
+  else  {
     analogWrite(mosfetPin, 0);
+    analogWrite(fireBpin, 0);
+    ledOff();                    // Turn off LED
   }
 
   delay(1);
 }
 
-/* Reset Button Counts */
-void ResetCount()
+/* Turns off external "Fire" LED */
+void ledOff()
 {
-  if (fButtonCount >= 99 || hButtonCount >= 3)  {
-    fButtonCount = 0;
-  }
-  if (tButtonState == LOW && tButtonCount > 3)  {
-    tButtonCount = 0;
-  }
-  if (hButtonState == LOW && hButtonCount >= 3 && sButtonState != 3)  {
-    hButtonCount = 0;
-  }
-  if (sButtonCount == 3 && chButtonCount >= 8)  {
-    chButtonCount = 0;
-  }
-  if (sButtonState == LOW && sButtonCount >= 6)  {
-    sButtonCount = 0;
-    screenOff = 0;
-  }
+  analogWrite(fireRpin, 255);
+  analogWrite(fireGpin, 255);
+  analogWrite(fireBpin, 255);
+  digitalWrite(fireButtonLED, LOW);
 }
+
+
+/* ===========================================================================================*/
+/*   
+/*    FUNCTIONS 4/4 - Internal Functions
+/* 
+/* ===========================================================================================*/
 
 /* Read 1.1V reference against VCC for approx battery level */
 int getBatteryVoltage()
@@ -529,56 +688,6 @@ void BattAdjust()
     display.drawFastHLine(battStartX, battStartY - i, battWidth, 1);
 }
 
-/* Haptic Feedback as Low Battery Warning */
-void LowBattery()
-{
-  if (avgVoltRead < 2850)
-  {
-    for (int i = 0; i <= 5; i++)
-      Vibrate();
-  }
-}
-
-/* Haptic Feedback Function *** Will use a piezo for now *** */
-void Vibrate()
-{
-  digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
-  delay(20);
-  digitalWrite(vibeMotorPin, 0);
-  yield();
-}
-
-/* Check Fire Button and Turns on Heat */
-void FireCoil() // Fix the pin #'s
-{
-  if (fButtonCount >= 1)  {
-    display.clearDisplay();
-    display.invertDisplay(true);
-    display.setTextSize(2);
-    display.setTextColor(WHITE);
-    display.setCursor(18, 9);
-    display.println("FIRE UP!");
-    display.display();
-
-    digitalWrite(fireButtonLED, HIGH);
-
-    firePower = map(tButtonCount, 1, 3, 100, 255);
-    analogWrite(mosfetPin, firePower);
-    analogWrite(fireRpin, colorR);       // Temporary LED Color
-    analogWrite(fireGpin, colorG);
-    analogWrite(fireBpin, colorB);
-    // setColor (color, color, color)     // Turn on LED
-  }
-
-  else  {
-    analogWrite(mosfetPin, 0);
-    analogWrite(fireBpin, 0);
-    ledOff();                    // Turn off LED
-  }
-
-  delay(1);
-}
-
 /* Reads Temp Sensor & Shuts Down Functions if Too Hot*/
 void ReadTemp()
 {
@@ -611,28 +720,7 @@ void ReadTemp()
   }
 }
 
-/* this */
-void ledOff()
-{
-  analogWrite(fireRpin, 255);
-  analogWrite(fireGpin, 255);
-  analogWrite(fireBpin, 255);
-  digitalWrite(fireButtonLED, LOW);
-}
-
-/* this */
-void setColor(int red, int green, int blue)
-{
-#ifdef COMMON_ANODE
-  red = 255 - red;
-  green = 255 - green;
-  blue = 255 - blue;
-#endif
-  analogWrite(fireRpin, red);
-  analogWrite(fireGpin, green);
-  analogWrite(fireBpin, blue);
-}
-
+/* Writes settings to static ram */
 void WriteEEPROM()
 {
   // int val = analogRead(0) / 4;            // Divide by 4 to convert to analog [if digital]
@@ -647,7 +735,7 @@ void WriteEEPROM()
     epAddress = 0;
   }
 
-  delay(10);
+  delay(2);
 
   /*** Note:
     As the EEPROM sizes are powers of two, wrapping (preventing overflow) of an
@@ -656,47 +744,17 @@ void WriteEEPROM()
   ***/
 }
 
-void HoldButton()
+/* Sets Pins to Colors */
+void setColor(int red, int green, int blue)
 {
-  current = digitalRead(fireButtonE);
-
-  // if the button state changes to pressed, remember the start time
-  if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
-    firstTime = millis();
-  }
-
-  millis_held = (millis() - firstTime);
-  secs_held = millis_held / 1000;
-
-  // This if statement is a basic debouncing tool, the button must be pushed for at least
-  // 100 milliseconds in a row for it to be considered as a push.
-  if (millis_held > 50) {
-
-    if (current == HIGH && previous == LOW) {       // check if button was released since last check
-
-      if (secs_held >= .5) {               // Button held for more than 3 seconds
-        fButtonCount++;
-      }
-    }
-  }
-  previous = current;
-  prev_secs_held = secs_held;
+#ifdef COMMON_ANODE
+  red = 255 - red;
+  green = 255 - green;
+  blue = 255 - blue;
+#endif
+  analogWrite(fireRpin, red);
+  analogWrite(fireGpin, green);
+  analogWrite(fireBpin, blue);
 }
 
-void MotionPower()
-{
-  mSensor = analogRead(motionPin);
-  
-  if (mSensor<1022){                       // While sensor is not moving, analog pin receive 1023~1024 value
-    Serial.print("Sensor Value: ");
-    Serial.println(mSensor);
-  }
-  
-  else{ 
-    Serial.print("Sensor Value: ");
-    Serial.println("NOWLOW");
-  }  
-delay(1);
-}
 
-/* End Functions */
