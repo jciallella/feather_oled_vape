@@ -1,11 +1,13 @@
-/*****************************************************************************
+/* ===========================================================================================*/
+/*                                                                                            */
+/*      Arduino Vaporizer (Mini) by Jack D. Ciallella                                         */
+/*      Adafruit OLED Feather Wing & Adafruit Feather Proto 32u                               */
+/*      :: Alpha Version ::                                                                   */
+/*      Last Updated 5/2017                                                                   */
+/*                                                                                            */
+/* ===========================================================================================*/
 
-  Arduino Vaporizer (Mini)
-  Adafruit OLED Feather Wing & Adafruit Feather Proto 32u
-  :: Alpha Version ::
-
-******************************************************************************/
-
+/* Icons in Binary for OLED Display */
 static const unsigned char PROGMEM  batt[]   =
 {
   0b00001111, 0b00000000, //     ####
@@ -64,15 +66,17 @@ static const unsigned char PROGMEM  temp[]   =
 };
 
 /* ===========================================================================================*/
-/*   
-/     INCLUDES / DEFINITIONS
-/* 
+/*                                                                                            */
+/*     INCLUDES / DEFINITIONS                                                                 */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 /* Includes */
 #include <SPI.h>
 #include <Wire.h>
 #include <EEPROM.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -80,20 +84,22 @@ static const unsigned char PROGMEM  temp[]   =
 Adafruit_SSD1306 display = Adafruit_SSD1306();
 
 /* Pin Mapping */
-#define fireButtonE    12       // E. Fire Button
+
+#define ruptPin        2        // Interrupt Pin
 #define scrnButtonC    5        // C. Screen Power
 #define hitsButtonB    6        // B. Resets Hits       [ 6 = Pin A7]
 #define tempButtonA    9        // A. Sets Temperature  [ 9 = Pin A9]
+#define mosfetPin      10       // Output to Mosfet
 #define vibeMotorPin   11       // Vibration motor
-//#define rdboardLED     13       // On-board LED
-#define motionPin      A0       //
+#define fireButtonE    12       // E. Fire Button
+#define rdboardLED     13       // On-board LED
+#define fireButtonLED  13       // LED Inside power button
+#define motionPin      A0       // Piezo As Motion Sensor
 #define battPin        A1       // Monitors Voltage
 #define thermoPin      A2       // TMP36 Temp Sensor
-#define fireRpin       A3       //           Red
-#define fireGpin       A4       // Fire LED  Green
-#define fireBpin       A5       //           Blue
-#define mosfetPin      A10      // Output to Mosfet
-#define fireButtonLED  13       // LED Inside power button
+#define fireRpin       A3       // -->      Red
+#define fireGpin       A4       // Fire LED Green
+#define fireBpin       A5       // -->      Blue
 
 /* Enable / Disable */
 #define VBAT_ENABLED  1         // Enable / Disable integrated batt mgmt
@@ -139,12 +145,18 @@ int fButtonCount = 0;
 int fButtonState = 0;
 int fButtonPrev = 0;
 
+/* Motion Sensor */
+int mSensor;
+int avgMRead;
+int gSeconds = 0;
+int timeSleep;
+
 /* Battery Calculations */
 int battRead;                       // Mapped Voltage for LED
 int battSingleRead;                 // Actual Voltage x1000
 int avgVoltRead = 0;                // the average used
 const int numReadings = 85;         // smooths voltage readings
-const float calcVolt = 3.3;       // Tested Board Voltage [3.228]
+const float calcVolt = 3.3;         // Tested Board Voltage [3.228]
 
 /* Temperature Variables */
 float temperatureF;                 // Temperature Reading
@@ -164,14 +176,11 @@ long prev_secs_held;                 // How long the button was held in the prev
 byte previous = HIGH;
 unsigned long firstTime;             // how long since the button was first pressed
 
-/* Motion Sensor */
-int mSensor;
-int avgMRead;
 
 /* ===========================================================================================*/
-/*   
-/     SETUP PROGRAM
-/* 
+/*                                                                                            */
+/*     SETUP PROGRAM                                                                          */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 void setup()
@@ -184,7 +193,8 @@ void setup()
   pinMode(thermoPin,    INPUT);
   pinMode(motionPin,    INPUT);
   pinMode(fireButtonE,  INPUT);
-//  pinMode(rdboardLED,   OUTPUT);                  //  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(ruptPin,      INPUT);        // Work in progress
+  pinMode(rdboardLED,   OUTPUT);
   pinMode(mosfetPin,    OUTPUT);
   pinMode(vibeMotorPin, OUTPUT);
   pinMode(fireRpin,     OUTPUT);
@@ -195,13 +205,14 @@ void setup()
   /* Pin States */
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
+  digitalWrite(ruptPin, HIGH);
 
   /* Setup Display */
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);     // Initialize I2C addr 0x3C (for 128x32)
   display.setRotation(2);                        // Rotate Display: 0, 90, 180 or 270* (0,1,2,3)
   // display.invertDisplay(true);                // White screen logo
   display.display();                             // Display splashscreen
-  delay(750);                                   // Time to display splash screen
+  delay(750);                                    // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
 
   /* Read from Memory */
@@ -215,9 +226,9 @@ void setup()
 }
 
 /* ===========================================================================================*/
-/*   
-/*    MAIN PROGRAM:  1/2 - Execute Functions
-/* 
+/*                                                                                            */
+/*    MAIN PROGRAM:  1/2 - Execute Functions                                                  */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 void loop()
@@ -234,10 +245,12 @@ void loop()
   Serial.println(chButtonCount);
   Serial.print("Motion Sense Level:");
   Serial.println(mSensor);
+  Serial.print("Time to Sleep:");
+  Serial.println(gSeconds);
 
   /* Internal Functions */
   ReadTemp();                                   // Reads Ambient Temp
-  VibrationSensor();                            // For physical handling of device
+  SleepMode();                                  // For physical handling of device
 
   /* Battery Functions */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
@@ -251,12 +264,12 @@ void loop()
   ResetCount();                                 // Reset button counters
   WriteEEPROM();                                // Saves Information
 
-/* ===========================================================================================*/
-/*   
-/*    MAIN PROGRAM:  2/2 - Display Menus
-/* 
-/* ===========================================================================================*/
-  
+  /* ===========================================================================================*/
+  /*                                                                                            */
+  /*    MAIN PROGRAM:  2/2 - Display Menus                                                      */
+  /*                                                                                            */
+  /* ===========================================================================================*/
+
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
   {
@@ -298,16 +311,16 @@ void loop()
     if (sButtonCount >= 5 && screenOff == 1 ) {
       display.clearDisplay();
       display.display();
-      delay(1);      
+      delay(1);
     }
   }
 
 } /* End Program */
 
 /* ===========================================================================================*/
-/*   
-/*    FUNCTIONS:  1/4 - Menu Functions
-/* 
+/*                                                                                            */
+/*    FUNCTIONS:  1/4 - Menu Functions                                                        */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 /* Creates Main Interface  */
@@ -332,7 +345,7 @@ void MainMenu()
   if (battRead < 0) {
     display.println("NO");
   }
-  else {
+  else if (battRead > 15 && battRead < 95) {
     display.println(battRead);
   }
 
@@ -388,9 +401,9 @@ void ThirdMenu()
 
 
 /* ===========================================================================================*/
-/*   
-/*    FUNCTIONS:  2/4 - Buttons
-/* 
+/*                                                                                            */
+/*    FUNCTIONS:  2/4 - Buttons                                                               */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 /* Read Temperature Button + Haptic Feedback (Add to All buttons later) */
@@ -474,10 +487,19 @@ void HoldButton()
 
 
 /* ===========================================================================================*/
-/*   
-/*    FUNCTIONS 3/4 - External Functions
-/* 
+/*                                                                                            */
+/*    FUNCTIONS 3/4 - External Functions                                                      */
+/*                                                                                            */
 /* ===========================================================================================*/
+
+/* Turns off external "Fire" LED */
+void ledOff()
+{
+  analogWrite(fireRpin, 255);
+  analogWrite(fireGpin, 255);
+  analogWrite(fireBpin, 255);
+  digitalWrite(fireButtonLED, LOW);
+}
 
 void SetLEDColor()
 {
@@ -582,30 +604,53 @@ void TempAdjust()
   delay(1);
 }
 
-/* Piezeo sensor checks for motion */
-void VibrationSensor()
+/* The interrupt is handled after wakeup */
+void WakeUpNow(void)
 {
-  mSensor = 0;
+  // Do bothing before returning to loop
+}
+
+/* Setup ruptPin as an interrupt and attach handler. */
+void EnterSleep()
+{
+  display.clearDisplay();
+  display.invertDisplay(true);
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(16, 13);
+  display.println("Goodnight! :D");
+  display.display();
+  delay(5000);
+  display.invertDisplay(false);
+  display.clearDisplay();
+  display.display();  
+  
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+
+  attachInterrupt(0, WakeUpNow, LOW);
+
+  sleep_mode();               // The program will continue from here.
+  sleep_disable();
+  detachInterrupt(0);
+}
+
+
+/* Piezeo sensor checks for motion - Replace function with actual seconds */
+void SleepMode()
+{
+  timeSleep = 250;    // Move this to global variables shortly
   mSensor = analogRead(motionPin);
 
-  if (mSensor <= 700)  {
-    // Do this thing -- wake on interrupt? / go to sleep
-    setColor(255, 255, 0);
-    delay(1);
-    setColor(255,255,255);
-
-/*
-    // if wake from sleep do this (Need sleep code)
-    display.clearDisplay();
-    display.invertDisplay(false);
-    display.setCursor(13, 13);
-    display.println("Care to Partake?");
-    display.display();
-    display.clearDisplay();        
+  if (mSensor < 600) {
+    gSeconds = 0;
   }
-
-*/ 
-  delay(1); 
+  if (mSensor >= 600) {
+    gSeconds++;
+  }
+  if (gSeconds > timeSleep)  {
+    EnterSleep();
+  }
 }
 
 /* Check Fire Button and Turns on Heat */
@@ -624,35 +669,24 @@ void FireCoil() // Fix the pin #'s
 
     firePower = map(tButtonCount, 1, 3, 100, 255);
     analogWrite(mosfetPin, firePower);
-    analogWrite(fireRpin, colorR);       // Temporary LED Color
+    analogWrite(fireRpin, colorR);       
     analogWrite(fireGpin, colorG);
     analogWrite(fireBpin, colorB);
-    // setColor (color, color, color)     // Turn on LED
   }
 
   else  {
     analogWrite(mosfetPin, 0);
     analogWrite(fireBpin, 0);
-    ledOff();                    // Turn off LED
+    ledOff();
   }
 
   delay(1);
 }
 
-/* Turns off external "Fire" LED */
-void ledOff()
-{
-  analogWrite(fireRpin, 255);
-  analogWrite(fireGpin, 255);
-  analogWrite(fireBpin, 255);
-  digitalWrite(fireButtonLED, LOW);
-}
-
-
 /* ===========================================================================================*/
-/*   
-/*    FUNCTIONS 4/4 - Internal Functions
-/* 
+/*                                                                                            */
+/*    FUNCTIONS 4/4 - Internal Functions                                                      */
+/*                                                                                            */
 /* ===========================================================================================*/
 
 /* Read 1.1V reference against VCC for approx battery level */
@@ -660,11 +694,11 @@ int getBatteryVoltage()
 {
   float measuredvbat = analogRead(battPin);
 
-  measuredvbat *= 2;        // we divided by 2, so multiply back
-  measuredvbat *= calcVolt;    // 3.3V - Internal reference voltage
-  // measuredvbat *= 2.048; // External Reference LM4040 Breakout
-  measuredvbat /= 1024;     // convert to voltage
-  measuredvbat *= 1000;     // multiply by 1000 for range values
+  measuredvbat *= 2;          // we divided by 2, so multiply back
+  measuredvbat *= calcVolt;   // 3.3V - Internal reference voltage
+  // measuredvbat *= 2.048;   // External Reference LM4040 Breakout
+  measuredvbat /= 1024;       // convert to voltage
+  measuredvbat *= 1000;       // multiply by 1000 for range values
 
   return measuredvbat;
 }
@@ -756,5 +790,4 @@ void setColor(int red, int green, int blue)
   analogWrite(fireGpin, green);
   analogWrite(fireBpin, blue);
 }
-
 
