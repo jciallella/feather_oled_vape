@@ -84,7 +84,6 @@ static const unsigned char PROGMEM  temp[]   =
 Adafruit_SSD1306 display = Adafruit_SSD1306();
 
 /* Pin Mapping */
-
 #define ruptPin        2        // Interrupt Pin
 #define scrnButtonC    5        // C. Screen Power
 #define hitsButtonB    6        // B. Resets Hits       [ 6 = Pin A7]
@@ -116,48 +115,52 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      75        // prevent button noise
+#define debounce   75           // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
 int tButtonState = 0;           // current state
-int tButtonPrev = 0;            // previous state
-int firePower = 0;              // power output to mosfet
+int tButtonPrev =  0;           // previous state
+int firePower =    0;           // power output to mosfet
 
 /* Hit Counter Variables   (B) */
 int hButtonCount = 0;
 int hButtonState = 0;
-int hButtonPrev = 0;
+int hButtonPrev =  0;
 
 /* Color Counter Variables (C2) */
 int chButtonCount;
 int chButtonState = 0;
-int chButtonPrev = 0;
+int chButtonPrev =  0;
 
 /* Screen Variables        (C) */
 int sButtonCount = 0;
 int sButtonState = 0;
-int sButtonPrev = 0;
-int screenOff = 0;
-int battScreen = 0;
+int sButtonPrev =  0;
+int screenOff =    0;
+int battScreen =   0;
 
 /* Fire Button Variables   (E) */
 int fButtonCount = 0;
 int fButtonState = 0;
-int fButtonPrev = 0;
+int fButtonPrev =  0;
 
 /* Motion Sensor */
-int mSensor;
-int avgMRead;
-int gSeconds = 0;
-int timeSleep;
+int mSensor;                       // Motion Sensor Value
+int gSeconds = 0;                  // Sleep Counter
+int timeSleep = 5000;              // Fall Asleep at # count
+int prevMSensor;                   // Last State
+int mSensorChange;                 // Piezo Sensor Readings Change
 
 /* Battery Calculations */
 int battRead;                       // Mapped Voltage for LED
 int battSingleRead;                 // Actual Voltage x1000
+int lowBattWarn;                    // Counter stops vibrations after 3x
 int avgVoltRead = 0;                // the average used
 const int numReadings = 85;         // smooths voltage readings
 const float calcVolt = 3.3;         // Tested Board Voltage [3.228]
+long oneMinTime = 60000;              // Time between low batt vibration warnings
+unsigned long previousMillis = 0;   // Low Batt timer
 
 /* Temperature Variables */
 float temperatureF;                 // Temperature Reading
@@ -165,9 +168,9 @@ int avgTempRead;                    // Average Temperature
 
 /* LED Variables */
 int epAddress = 0;                  // Current EEPROM Address / byte
-int colorR;
-int colorG;
-int colorB;
+int colorR;                         // (R) -->
+int colorG;                         // (G) LED Color Values
+int colorB;                         // (G) -->
 
 /* Held Button Variables */
 int current;                         // Current state of button (LOW = Pressed for pullup resistors)
@@ -187,26 +190,26 @@ unsigned long firstTime;             // how long since the button was first pres
 void setup()
 {
   /* Set Pin Input/Output & Pullups */
-  pinMode(hitsButtonB,  INPUT_PULLUP);
-  pinMode(scrnButtonC,  INPUT_PULLUP);
-  pinMode(battPin,      INPUT);
-  pinMode(tempButtonA,  INPUT);
-  pinMode(thermoPin,    INPUT);
-  pinMode(motionPin,    INPUT);
-  pinMode(fireButtonE,  INPUT);
-  pinMode(ruptPin,      INPUT);        // Work in progress
-  pinMode(rdboardLED,   OUTPUT);
-  pinMode(mosfetPin,    OUTPUT);
-  pinMode(vibeMotorPin, OUTPUT);
-  pinMode(fireRpin,     OUTPUT);
-  pinMode(fireGpin,     OUTPUT);
-  pinMode(fireBpin,     OUTPUT);
+  pinMode(hitsButtonB,   INPUT_PULLUP);
+  pinMode(scrnButtonC,   INPUT_PULLUP);
+  pinMode(battPin,       INPUT);
+  pinMode(tempButtonA,   INPUT);
+  pinMode(thermoPin,     INPUT);
+  pinMode(motionPin,     INPUT);
+  pinMode(fireButtonE,   INPUT);
+  pinMode(ruptPin,       INPUT);
+  pinMode(rdboardLED,    OUTPUT);
+  pinMode(mosfetPin,     OUTPUT);
+  pinMode(vibeMotorPin,  OUTPUT);
+  pinMode(fireRpin,      OUTPUT);
+  pinMode(fireGpin,      OUTPUT);
+  pinMode(fireBpin,      OUTPUT);
   pinMode(fireButtonLED, OUTPUT);
 
   /* Pin States */
   digitalWrite(fireButtonE,   HIGH);
   digitalWrite(fireButtonLED, LOW);
-  digitalWrite(ruptPin, HIGH);
+  digitalWrite(ruptPin,       HIGH);
 
   /* Setup Display */
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);     // Initialize I2C addr 0x3C (for 128x32)
@@ -218,9 +221,9 @@ void setup()
 
   /* Read from Memory */
   chButtonCount = EEPROM.read(epAddress);        // Reads EEPROM for LED Color
-  colorR =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
-  colorG =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
-  colorB =        EEPROM.read(epAddress);        // Reads EEPROM for LED Color
+  colorR =        EEPROM.read(epAddress);        // -->              Red LED 
+  colorG =        EEPROM.read(epAddress);        // -->              Green LED
+  colorB =        EEPROM.read(epAddress);        // -->              Blue LED
 
   /* Functions */
   ledOff();                                      // Turn off LED (Clear Color)
@@ -228,7 +231,11 @@ void setup()
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    MAIN PROGRAM:  1/2 - Execute Functions                                                  */
+/*    END SETUP                                                                                */
+/*                                                                                            */
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    BEGIN LOOP                                                                            */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -242,34 +249,45 @@ void loop()
   Serial.println(avgVoltRead);
   Serial.print("TempF:...");
   Serial.println(avgTempRead);
-  Serial.print("EEPROM Value(s):");
+  Serial.print("EEPROM Value(s)...");
   Serial.println(chButtonCount);
-  Serial.print("Motion Sense Level:");
-  Serial.println(mSensor);
-  Serial.print("Time to Sleep:");
+  Serial.print("Motion Sense Level...");
+  Serial.print(mSensor);
+  Serial.print(" / ");
+  Serial.println(mSensorChange);
+  Serial.print("Time to Sleep...");
   Serial.println(gSeconds);
 
-  /* Internal Functions */
-  ReadTemp();                                   // Reads Ambient Temp
-  SleepMode();                                  // For physical handling of device
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    Execute Functions                                                                       */
+/*                                                                                            */
+/* ===========================================================================================*/
 
-  /* Battery Functions */
+  /* Internal */
+  AutoSleepMode();                              // For physical handling of device
+  ReadTemp();                                   // Reads Ambient Temp
+
+  /* Battery */
   battSingleRead = getBatteryVoltage();         // Reads Voltage
   Smooth();                                     // Removes Jitter from Voltage Reads
   BattAdjust();                                 // Set Screen Readout
   LowBattery();                                 // Haptic notification to recharge
 
-  /* Button Functions */
+  /* Buttons */
   ButtonReader();                               // Check button presses
-  HoldButton();
+  HoldButton();                                 // De-bounces buttons
   ResetCount();                                 // Reset button counters
+  
+  /* Memory */
   WriteEEPROM();                                // Saves Information
 
-  /* ===========================================================================================*/
-  /*                                                                                            */
-  /*    MAIN PROGRAM:  2/2 - Display Menus                                                      */
-  /*                                                                                            */
-  /* ===========================================================================================*/
+
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    Display Menus                                                                           */
+/*                                                                                            */
+/* ===========================================================================================*/
 
   /* Conditionally Display Main Menu */
   if (fButtonState != LOW)
@@ -284,48 +302,48 @@ void loop()
       display.invertDisplay(true);
       MainMenu();
       TempAdjust();
-    }
-    if (sButtonCount == 3 && screenOff == 0 && battScreen == 0) {
-      SecondMenu();
-    }
-    if (sButtonCount == 3 && battScreen == 1) {
-      ThirdMenu();
       ledOff();
     }
-    if (sButtonCount == 5 && screenOff == 0 ) {
+
+    /* Notify Screen Going Off */
+    if (sButtonCount == 4 && screenOff == 0 ) {
       screenOff++;
       ledOff();
-      display.clearDisplay();
-      display.setTextSize(1);
-      display.setCursor(18, 13);
-      display.println("Screen is Off...");
-      display.display();
-      delay(800);
-      display.clearDisplay();
-      display.invertDisplay(false);
-      display.setCursor(18, 13);
-      display.println("Press to Wake...");
-      display.display();
-      delay(700);
-      yield();
+      StealthMode();
     }
-    if (sButtonCount >= 5 && screenOff == 1 ) {
+    /* Turn Screen Off */
+    if (sButtonCount >= 4 && screenOff == 1 ) {
       display.clearDisplay();
       display.display();
       delay(1);
-      // Goes into actual sleep here -- which button wakes?
     }
-  }
 
+    /* Conditionally Display Second & Third Menus */
+    if (sButtonCount == 3 && screenOff == 0 && battScreen == 0) {
+      ThirdMenuBatt();
+      ledOff();
+
+    }
+    if (sButtonCount == 3 && battScreen == 1) {
+      SecondMenuLED();
+    }
+
+  } /* Close If */
+
+  /* Press B & C Buttons together to send to sleep */
   if (sButtonState == LOW && tButtonState == LOW ) {
     EnterSleep();
   }
 
-} /* End Program */
+} /* Close Program */
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    FUNCTIONS:  1/4 - Menu Functions                                                        */
+/*    END LOOP                                                                                */
+/*                                                                                            */
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    Main Menus   [ OLED ]                                                                   */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -386,7 +404,7 @@ void MainMenu()
 }
 
 /* Creates Secondary Interface  */
-void SecondMenu()
+void SecondMenuLED()
 {
   // LED Color
   display.clearDisplay();
@@ -399,7 +417,7 @@ void SecondMenu()
 }
 
 /* Creates Tertiary Interface  */
-void ThirdMenu()
+void ThirdMenuBatt()
 {
   // Internal Temperature
   display.clearDisplay();
@@ -412,10 +430,27 @@ void ThirdMenu()
   display.display();
 }
 
+/* Turns of Screen / LED's */
+void StealthMode()
+{
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(18, 13);
+  display.println("Stealth Mode: ON");
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+  display.invertDisplay(false);
+  display.setCursor(17, 13);
+  display.println("Press to Return");
+  display.display();
+  delay(1000);
+  yield();  
+}
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    FUNCTIONS:  2/4 - Buttons                                                               */
+/*    Buttons - Read & Count                                                                  */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -427,7 +462,7 @@ void ButtonReader()
   sButtonState = digitalRead(scrnButtonC);
   fButtonState = digitalRead(fireButtonE);
 
-  if (tButtonState == LOW && sButtonCount == 0)  {
+  if (tButtonState == LOW && sButtonCount <= 2)  {
     tButtonCount++;
   }
   if (hButtonState == LOW && sButtonCount != 3)  {
@@ -469,7 +504,7 @@ void ResetCount()
   if (battScreen > 1) {
     battScreen = 0;
   }
-  if (sButtonState == LOW && sButtonCount >= 6)  {
+  if (sButtonState == LOW && sButtonCount >= 5)  {
     sButtonCount = 0;
     screenOff = 0;
   }
@@ -477,6 +512,7 @@ void ResetCount()
 
 void HoldButton()
 {
+  int minHoldTime = 50;
   current = digitalRead(fireButtonE);
 
   // if the button state changes to pressed, remember the start time
@@ -487,13 +523,12 @@ void HoldButton()
   millis_held = (millis() - firstTime);
   secs_held = millis_held / 1000;
 
-  // The basic debouncing tool. Button must be pushed for at least
-  // 100 milliseconds in a row to be considered as a push.
-  if (millis_held > 50) {
+  /* Basic debouncing tool. Button must be pushed for a certain time to be considered a push. */
+  if (millis_held > minHoldTime) {
 
-    if (current == HIGH && previous == LOW) {       // check if button was released since last check
+    if (current == HIGH && previous == LOW) {  // check if button was released since last check
 
-      if (millis_held >= 350) {               // Button held for more than 3 seconds
+      if (millis_held >= 350) {                // Button held for more than 3 seconds
         fButtonCount++;
       }
     }
@@ -505,7 +540,7 @@ void HoldButton()
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    FUNCTIONS 3/4 - External Functions                                                      */
+/*    LED / OLED                                                                              */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -577,25 +612,6 @@ void SetLEDColor()
   delay(1);
 }
 
-/* Haptic Feedback as Low Battery Warning */
-void LowBattery()
-{
-  if (avgVoltRead < 2850)
-  {
-    for (int i = 0; i <= 5; i++)
-      Vibrate();
-  }
-}
-
-/* Haptic Feedback Function *** Will use a piezo for now *** */
-void Vibrate()
-{
-  digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
-  delay(20);
-  digitalWrite(vibeMotorPin, 0);
-  yield();
-}
-
 /* Adjusts Screen OF/HI/MD/LO (via Button A) */
 void TempAdjust()
 {
@@ -621,10 +637,65 @@ void TempAdjust()
   delay(1);
 }
 
-/* The interrupt is handled after wakeup */
-void WakeUpNow(void)
+/* ===========================================================================================*/
+/*                                                                                            */
+/*   Battery / Vibrate                                                                        */
+/*                                                                                            */
+/* ===========================================================================================*/
+
+/* Haptic Feedback as Low Battery Warning */
+void LowBattery()
+{  
+  unsigned long currentMillis = millis();
+
+  if (avgVoltRead < 2950) {
+
+    if (currentMillis - previousMillis > oneMinTime) {
+        previousMillis = currentMillis;  
+      
+      if (lowBattWarn <= 9) {
+        for (int i = 0; i <= 3; i++)
+          Vibrate();
+          lowBattWarn++;                        
+        }
+      }
+   }  
+  else if (avgVoltRead > 3500) {
+    lowBattWarn = 0;
+  }  
+}
+
+/* Haptic Feedback Function *** Will use a piezo for now *** */
+void Vibrate()
 {
-  // Do bothing before returning to loop
+  digitalWrite(vibeMotorPin, 2500); // Runs vibe motor
+  delay(20);
+  digitalWrite(vibeMotorPin, 0);
+  yield();
+}
+
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    Sleep Functions                                                                         */
+/*                                                                                            */
+/* ===========================================================================================*/
+
+/* The interrupt is handled after wakeup || Show wake screen while functions turn on */
+void WakeUpNow()
+{
+  // WakeScreen();   // Not sure why this isn't working
+}
+
+/* Placeholder Screen while buttons come back online */
+void WakeScreen()
+{
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(14, 9);
+  display.println("Waking Back Up...");
+  display.display();
+  delay (3000);
 }
 
 /* Setup ruptPin as an interrupt and attach handler. */
@@ -635,12 +706,21 @@ void EnterSleep()
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(16, 13);
-  display.println("Goodnight! :D");
+  display.println("Going to Sleep...");
   display.display();
-  delay(5000);
+  delay(750);
+  
+  display.setCursor(19, 13);
+  display.clearDisplay();
+  display.println(" ~ Goodnight ~ ");
+  display.display();
+  delay(1500);
+  
   display.invertDisplay(false);
   display.clearDisplay();
   display.display();
+
+  sButtonCount = 0;
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
@@ -652,30 +732,49 @@ void EnterSleep()
   detachInterrupt(0);
 }
 
-
 /* Piezeo sensor checks for motion - Replace function with actual seconds */
-void SleepMode()
+void AutoSleepMode()
 {
-  timeSleep = 5000;    // Move this to global variables shortly
-  // Also change to count the difference between the last count to new count
-  // if theres no change in the number (instead of counting) fall asleep
   mSensor = analogRead(motionPin);
+  delay (1);
+  prevMSensor = analogRead(motionPin);
 
-  if (mSensor < 600) {
+  mSensorChange = mSensor - prevMSensor;
+
+  if (mSensorChange > 175 || mSensorChange < - 175) {
     gSeconds = 0;
   }
-  if (mSensor >= 600) {
+  else {
     gSeconds++;
   }
+
+  if (gSeconds > 10000)  {
+    display.clearDisplay();
+    display.display();
+    sButtonCount = 0;
+//    sleep = true;
+  }
+  
   if (gSeconds > timeSleep)  {
     EnterSleep();
+    gSeconds = 0;
   }
 }
 
+/* ===========================================================================================*/
+/*                                                                                            */
+/*    Fire Vape / Coil                                                                        */  
+/*                                                                                            */
+/* ===========================================================================================*/
+
 /* Check Fire Button and Turns on Heat */
-void FireCoil() // Fix the pin #'s
+void FireCoil()
 {
-  if (fButtonCount >= 1)  {
+  if (fButtonState == LOW)  {
+    firePower = map(tButtonCount, 1, 3, 100, 255);
+    analogWrite(mosfetPin, firePower);
+
+    if (sButtonCount !=4) {
     display.clearDisplay();
     display.invertDisplay(true);
     display.setTextSize(2);
@@ -683,14 +782,14 @@ void FireCoil() // Fix the pin #'s
     display.setCursor(18, 9);
     display.println("FIRE UP!");
     display.display();
+    display.clearDisplay();
 
     digitalWrite(fireButtonLED, HIGH);
-
-    firePower = map(tButtonCount, 1, 3, 100, 255);
-    analogWrite(mosfetPin, firePower);
+    
     analogWrite(fireRpin, colorR);
     analogWrite(fireGpin, colorG);
     analogWrite(fireBpin, colorB);
+    }
   }
 
   else  {
@@ -704,7 +803,7 @@ void FireCoil() // Fix the pin #'s
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    FUNCTIONS 4/4 - Internal Functions                                                      */
+/*    Internal Functions                                                                      */  
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -787,14 +886,7 @@ void WriteEEPROM()
   if (epAddress == EEPROM.length()) {
     epAddress = 0;
   }
-
   delay(1);
-
-  /*** Note:
-    As the EEPROM sizes are powers of two, wrapping (preventing overflow) of an
-    EEPROM address is also doable by a bitwise and of the length - 1.
-    ++addr &= EEPROM.length() - 1;
-  ***/
 }
 
 /* Sets Pins to Colors */
