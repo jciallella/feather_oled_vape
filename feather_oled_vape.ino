@@ -562,53 +562,53 @@ void SetLEDColor()
   colorG = 0;
   colorB = 0;
 
-  if (chButtonCount == 0) {
-    setColor(0, 255, 0);                // Purple
-    display.println("PURP HAZE");
-    colorG = 255;
-  }
-  if (chButtonCount == 1) {
-    setColor(0, 0, 255);                // Green
-    display.println("MOJITOS");
-    colorB = 0;
-  }
-  if (chButtonCount == 2) {
-    setColor(0, 255, 255);              // Red
-    display.println("WATERMELON");
-    colorG = 255;
-    colorB = 255;
-  }
-  if (chButtonCount == 3) {
-    setColor(255, 255, 0);              // Mid-Blue [ DEEP WATER ]
-    display.println("OCEANIC");
-    colorR = 255;
-    colorG = 255;
-  }
-  if (chButtonCount == 4) {
-    setColor(255, 0, 255);              // Green [ NEW GRASS, FOREST ]
-    display.println("CANOPY");
-    colorR = 255;
-    colorB = 255;
-  }
-  if (chButtonCount == 5) {
-    setColor(255, 0, 0);                // Light Blue [ICE]
-    display.println("GLACIER");
-    colorR = 255;
-  }
-  if (chButtonCount == 6) {
-    setColor(80, 0, 80);                // White [GHOST, SEAGLASS, CLOUD, MINT]
-    display.println("SEAGLASS");
-    colorR = 255;
-    colorB = 255;
-    colorB = 255;                       // Not sure if I need to store a color or not here
-  }
-  if (chButtonCount == 7) {
-    ledOff();            // Off
-    display.println("OFF");
-  }
-
+  switch (chButtonCount) {
+    case 0:
+      setColor(0, 255, 0);                // Purple
+      display.println("PURP HAZE");
+      colorG = 255;
+      break;
+    case 1:  
+      setColor(0, 0, 255);                // Green
+      display.println("MOJITOS");
+      colorB = 0;
+      break;
+    case 2:
+      setColor(0, 255, 255);              // Red
+      display.println("WATERMELON");
+      colorG = 255;
+      colorB = 255;
+      break;
+    case 3:
+      setColor(255, 255, 0);              // Mid-Blue [ DEEP WATER ]
+      display.println("OCEANIC");
+      colorR = 255;
+      colorG = 255;
+      break;
+    case 4:
+      setColor(255, 0, 255);              // Green [ NEW GRASS, FOREST ]
+      display.println("CANOPY");
+      colorR = 255;
+      colorB = 255;
+      break;
+    case 5:
+      setColor(255, 0, 0);                // Light Blue [ICE]
+      display.println("GLACIER");
+      colorR = 255;  
+      break;
+    case 6:
+      setColor(80, 0, 80);                // White [GHOST, SEAGLASS, CLOUD, MINT]
+      display.println("SEAGLASS");
+      colorR = 255;
+      colorB = 255;
+      colorB = 255;    
+      break;
+    case 7:
+      ledOff();            
+      display.println("OFF");
+      break;        
+  }    
   display.display();
-
   delay(1);
 }
 
@@ -622,17 +622,19 @@ void TempAdjust()
   int tempHeight = map(tButtonCount, 3, 0, 0, 13);
   display.fillRect(tempStartX, tempStartY + tempHeight, tempWidth, tempMaxHeight - tempHeight, 1);
 
-  if (tButtonCount == 0)  {
-    display.println("NO");
-  }
-  if (tButtonCount == 1)  {
-    display.println("LO");
-  }
-  if (tButtonCount == 2)  {
-    display.println("MD");
-  }
-  if (tButtonCount == 3)  {
-    display.println("HI");
+  switch (tButtonCount) {
+    case 0:
+      display.println("NO");      
+      break;
+    case 1:
+      display.println("LO");      
+      break;
+    case 2:
+      display.println("MD");
+      break;          
+    case 3:
+      display.println("HI");
+      break;   
   }
   delay(1);
 }
