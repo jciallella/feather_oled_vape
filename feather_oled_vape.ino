@@ -116,7 +116,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      15        // prevent button noise
+#define debounce      75        // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
@@ -139,6 +139,7 @@ int sButtonCount = 0;
 int sButtonState = 0;
 int sButtonPrev = 0;
 int screenOff = 0;
+int battScreen = 0;
 
 /* Fire Button Variables   (E) */
 int fButtonCount = 0;
@@ -284,10 +285,10 @@ void loop()
       MainMenu();
       TempAdjust();
     }
-    if (sButtonCount == 3) {
+    if (sButtonCount == 3 && screenOff == 0 && battScreen == 0) {
       SecondMenu();
     }
-    if (sButtonCount == 4) {
+    if (sButtonCount == 3 && battScreen == 1) {
       ThirdMenu();
       ledOff();
     }
@@ -319,7 +320,6 @@ void loop()
   if (sButtonState == LOW && tButtonState == LOW ) {
     EnterSleep();
   }
-
 
 } /* End Program */
 
@@ -427,11 +427,11 @@ void ButtonReader()
   sButtonState = digitalRead(scrnButtonC);
   fButtonState = digitalRead(fireButtonE);
 
-  if (tButtonState == LOW)  {
+  if (tButtonState == LOW && sButtonCount == 0)  {
     tButtonCount++;
   }
   if (hButtonState == LOW && sButtonCount != 3)  {
-    hButtonCount++;   // This needs debounce
+    hButtonCount++;
   }
   if (hButtonState == LOW && sButtonCount == 3)  {
     chButtonCount++;
@@ -439,14 +439,15 @@ void ButtonReader()
   if (sButtonState == LOW)  {
     sButtonCount++;
   }
-
+  if (tButtonState == LOW && sButtonCount == 3) {
+    battScreen++;
+  }
   if (fButtonState == LOW) {
     FireCoil();
   }
   else {
     analogWrite(mosfetPin, 0);
   }
-
   delay(1);
 }
 
@@ -464,6 +465,9 @@ void ResetCount()
   }
   if (sButtonCount == 3 && chButtonCount >= 8)  {
     chButtonCount = 0;
+  }
+  if (battScreen > 1) {
+    battScreen = 0;
   }
   if (sButtonState == LOW && sButtonCount >= 6)  {
     sButtonCount = 0;
