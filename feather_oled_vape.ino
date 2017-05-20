@@ -116,7 +116,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce      20        // prevent button noise
+#define debounce      15        // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
@@ -169,7 +169,7 @@ int colorG;
 int colorB;
 
 /* Held Button Variables */
-int current;                         // Current state of the button (LOW = Pressed for pullup resistors)
+int current;                         // Current state of button (LOW = Pressed for pullup resistors)
 long millis_held;                    // How long the button was held (milliseconds)
 long secs_held;                      // How long the button was held (seconds)
 long prev_secs_held;                 // How long the button was held in the previous check
@@ -297,7 +297,7 @@ void loop()
       display.clearDisplay();
       display.setTextSize(1);
       display.setCursor(18, 13);
-      display.println("Off To Sleep...");
+      display.println("Screen is Off...");
       display.display();
       delay(800);
       display.clearDisplay();
@@ -312,8 +312,14 @@ void loop()
       display.clearDisplay();
       display.display();
       delay(1);
+      // Goes into actual sleep here -- which button wakes?
     }
   }
+
+  if (sButtonState == LOW && tButtonState == LOW ) {
+    EnterSleep();
+  }
+
 
 } /* End Program */
 
@@ -363,7 +369,14 @@ void MainMenu()
   display.setTextColor(WHITE);
   display.setTextSize(2);
   display.setCursor(101, 4);
-  display.println(fButtonCount);
+
+  if (fButtonCount == 0) {
+    display.println("NO");
+  }
+  else {
+    display.println(fButtonCount);
+  }
+
   display.setTextSize(1);
   display.setCursor(101, 21);
   display.println("HITS");
@@ -476,7 +489,7 @@ void HoldButton()
 
     if (current == HIGH && previous == LOW) {       // check if button was released since last check
 
-      if (secs_held >= .3) {               // Button held for more than 3 seconds
+      if (millis_held >= 350) {               // Button held for more than 3 seconds
         fButtonCount++;
       }
     }
@@ -623,8 +636,8 @@ void EnterSleep()
   delay(5000);
   display.invertDisplay(false);
   display.clearDisplay();
-  display.display();  
-  
+  display.display();
+
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
 
@@ -639,7 +652,9 @@ void EnterSleep()
 /* Piezeo sensor checks for motion - Replace function with actual seconds */
 void SleepMode()
 {
-  timeSleep = 250;    // Move this to global variables shortly
+  timeSleep = 5000;    // Move this to global variables shortly
+  // Also change to count the difference between the last count to new count
+  // if theres no change in the number (instead of counting) fall asleep
   mSensor = analogRead(motionPin);
 
   if (mSensor < 600) {
@@ -669,7 +684,7 @@ void FireCoil() // Fix the pin #'s
 
     firePower = map(tButtonCount, 1, 3, 100, 255);
     analogWrite(mosfetPin, firePower);
-    analogWrite(fireRpin, colorR);       
+    analogWrite(fireRpin, colorR);
     analogWrite(fireGpin, colorG);
     analogWrite(fireBpin, colorB);
   }
@@ -750,7 +765,7 @@ void ReadTemp()
     display.display();
     setColor(255, 255, 0);
     delay(10000);
-    setColor(0, 0, 0);            // Off
+    setColor(0, 0, 0);
   }
 }
 
@@ -769,7 +784,7 @@ void WriteEEPROM()
     epAddress = 0;
   }
 
-  delay(2);
+  delay(1);
 
   /*** Note:
     As the EEPROM sizes are powers of two, wrapping (preventing overflow) of an
