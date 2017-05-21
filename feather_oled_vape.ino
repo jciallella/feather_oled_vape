@@ -65,6 +65,43 @@ static const unsigned char PROGMEM  temp[]   =
   0b00111111, 0b11000000, //   ########
 };
 
+static const unsigned char PROGMEM  feather[] =
+{
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000011, 0b11111110, 0b01111111, 0b11000000, 0b00111000, 0b11111111, 0b11110011, 0b00000000, 0b11001111, 0b11111001, 0b11111110, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //       #########  #########        ###   ############  ##        ##  #########  ########                                         
+  0b00000011, 0b11111110, 0b01111111, 0b11000000, 0b00111000, 0b11111111, 0b11110011, 0b00000000, 0b11001111, 0b11111001, 0b11111111, 0b10000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //       #########  #########        ###   ############  ##        ##  #########  ##########                                       
+  0b00000011, 0b00000000, 0b01100000, 0b00000000, 0b01101000, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000001, 0b10000000, 0b11111111, 0b10001100, 0b00011111, 0b00000000, //       ##         ##              ## #        ##       ##        ##  ##         ##      ##       #########   ##     #####        
+  0b00000011, 0b00000000, 0b01100000, 0b00000000, 0b01101100, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000000, 0b11000000, 0b11111111, 0b10001100, 0b00111111, 0b10000000, //       ##         ##              ## ##       ##       ##        ##  ##         ##       ##      #########   ##    #######       
+  0b00000011, 0b00000000, 0b01100000, 0b00000000, 0b01101100, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000000, 0b11000000, 0b00000011, 0b00001100, 0b01110001, 0b11000000, //       ##         ##              ## ##       ##       ##        ##  ##         ##       ##            ##    ##   ###   ###      
+  0b00000011, 0b00000000, 0b01100000, 0b00000000, 0b11000110, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000000, 0b11000000, 0b00000111, 0b00001100, 0b01100000, 0b11100000, //       ##         ##             ##   ##      ##       ##        ##  ##         ##       ##           ###    ##   ##     ###     
+  0b00000011, 0b00000000, 0b01100000, 0b00000000, 0b11000110, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000000, 0b11000000, 0b00000110, 0b00001100, 0b01100000, 0b01100000, //       ##         ##             ##   ##      ##       ##        ##  ##         ##       ##           ##     ##   ##      ##     
+  0b00000011, 0b00000000, 0b01111111, 0b10000000, 0b11000110, 0b00000110, 0b00000011, 0b11111111, 0b11001111, 0b11110001, 0b10000001, 0b10000000, 0b00001110, 0b00001100, 0b01100000, 0b01100000, //       ##         ########       ##   ##      ##       ############  ########   ##      ##           ###     ##   ##      ##     
+  0b00000011, 0b11111100, 0b01111111, 0b10000001, 0b10000011, 0b00000110, 0b00000011, 0b11111111, 0b11001111, 0b11110001, 0b11111111, 0b10000000, 0b00001100, 0b00001100, 0b01100000, 0b11100000, //       ########   ########      ##     ##     ##       ############  ########   ##########           ##      ##   ##     ###     
+  0b00000011, 0b11111100, 0b01100000, 0b00000001, 0b10000011, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b11111110, 0b00000000, 0b00011100, 0b00001100, 0b01110000, 0b11000000, //       ########   ##            ##     ##     ##       ##        ##  ##         ########            ###      ##   ###    ##      
+  0b00000011, 0b00000000, 0b01100000, 0b00000011, 0b10000011, 0b00000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10001100, 0b00000000, 0b00011000, 0b00001100, 0b00111111, 0b11000000, //       ##         ##           ###     ##     ##       ##        ##  ##         ##   ##             ##       ##    ########      
+  0b00000011, 0b00000000, 0b01100000, 0b00000011, 0b11111111, 0b10000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10001110, 0b00000000, 0b00111000, 0b00001100, 0b00011111, 0b10000000, //       ##         ##           ###########    ##       ##        ##  ##         ##   ###           ###       ##     ######       
+  0b00000011, 0b00000000, 0b01100000, 0b00000011, 0b11111111, 0b10000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000110, 0b00000000, 0b00110000, 0b00000000, 0b00000000, 0b00000000, //       ##         ##           ###########    ##       ##        ##  ##         ##    ##           ##                            
+  0b00000011, 0b00000000, 0b01100000, 0b00000111, 0b00000001, 0b10000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000011, 0b00000000, 0b01110000, 0b00000000, 0b00000000, 0b00000000, //       ##         ##          ###       ##    ##       ##        ##  ##         ##     ##         ###                            
+  0b00000011, 0b00000000, 0b01100000, 0b00000110, 0b00000000, 0b11000110, 0b00000011, 0b00000000, 0b11001100, 0b00000001, 0b10000011, 0b10000000, 0b01100000, 0b00000000, 0b00000000, 0b00000000, //       ##         ##          ##         ##   ##       ##        ##  ##         ##     ###        ##                             
+  0b00000011, 0b00000000, 0b01111111, 0b11100110, 0b00000000, 0b11000110, 0b00000011, 0b00000000, 0b11001111, 0b11111101, 0b10000001, 0b10000000, 0b01100000, 0b00000000, 0b00000000, 0b00000000, //       ##         ##########  ##         ##   ##       ##        ##  ########## ##      ##        ##                             
+  0b00000011, 0b00000000, 0b01111111, 0b11101100, 0b00000000, 0b11100110, 0b00000011, 0b00000000, 0b11001111, 0b11111101, 0b10000000, 0b11000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //       ##         ########## ##          ###  ##       ##        ##  ########## ##       ##                                      
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+  0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, 0b00000000, //                                                                                                                                 
+};
+
+
 /* ===========================================================================================*/
 /*                                                                                            */
 /*     INCLUDES / DEFINITIONS                                                                 */
@@ -115,7 +152,7 @@ Adafruit_SSD1306 display = Adafruit_SSD1306();
 #define tempMaxHeight 13
 
 /* Debounce / Button Hold */
-#define debounce   75           // prevent button noise
+#define debounce      199        // prevent button noise
 
 /* Temperature Variables   (A) */
 int tButtonCount = 1;           // press counter
@@ -148,7 +185,8 @@ int fButtonPrev =  0;
 /* Motion Sensor */
 int mSensor;                       // Motion Sensor Value
 int gSeconds = 0;                  // Sleep Counter
-int timeSleep = 5000;              // Fall Asleep at # count
+int screenSleep = 2500;            // Turns off Screen at #
+int deepSleep = 5000;              // Fall Asleep at # count
 int prevMSensor;                   // Last State
 int mSensorChange;                 // Piezo Sensor Readings Change
 
@@ -159,12 +197,12 @@ int lowBattWarn;                    // Counter stops vibrations after 3x
 int avgVoltRead = 0;                // the average used
 const int numReadings = 85;         // smooths voltage readings
 const float calcVolt = 3.3;         // Tested Board Voltage [3.228]
-long oneMinTime = 60000;              // Time between low batt vibration warnings
+long oneMinTime = 60000;            // Time between low batt vibration warnings
 unsigned long previousMillis = 0;   // Low Batt timer
 
 /* Temperature Variables */
 float temperatureF;                 // Temperature Reading
-int avgTempRead;                    // Average Temperature
+int avgTempRead = 0;                // Average Temperature
 
 /* LED Variables */
 int epAddress = 0;                  // Current EEPROM Address / byte
@@ -178,8 +216,9 @@ long millis_held;                    // How long the button was held (millisecon
 long secs_held;                      // How long the button was held (seconds)
 long prev_secs_held;                 // How long the button was held in the previous check
 byte previous = HIGH;
-unsigned long firstTime;             // how long since the button was first pressed
+unsigned long firstTime;             // How long since the button was first pressed
 
+boolean screenFlip = true;
 
 /* ===========================================================================================*/
 /*                                                                                            */
@@ -216,7 +255,7 @@ void setup()
   display.setRotation(2);                        // Rotate Display: 0, 90, 180 or 270* (0,1,2,3)
   // display.invertDisplay(true);                // White screen logo
   display.display();                             // Display splashscreen
-  delay(750);                                    // Time to display splash screen
+  delay(1500);                                   // Time to display splash screen
   display.clearDisplay();                        // Clear buffer
 
   /* Read from Memory */
@@ -227,7 +266,9 @@ void setup()
 
   /* Functions */
   ledOff();                                      // Turn off LED (Clear Color)
+  ShowLogo();                                    // Quickly show 710 Logo
 }
+
 
 /* ===========================================================================================*/
 /*                                                                                            */
@@ -250,7 +291,11 @@ void loop()
   Serial.print("TempF:...");
   Serial.println(avgTempRead);
   Serial.print("EEPROM Value(s)...");
-  Serial.println(chButtonCount);
+  Serial.print(colorR);
+  Serial.print(", ");
+  Serial.print(colorG);
+  Serial.print(", ");
+  Serial.println(colorB);  
   Serial.print("Motion Sense Level...");
   Serial.print(mSensor);
   Serial.print(" / ");
@@ -290,7 +335,7 @@ void loop()
 /* ===========================================================================================*/
 
   /* Conditionally Display Main Menu */
-  if (fButtonState != LOW)
+  if (fButtonState != LOW && screenFlip == true)
   {
     if (sButtonCount <= 1) {
       display.invertDisplay(false);
@@ -419,14 +464,21 @@ void SecondMenuLED()
 /* Creates Tertiary Interface  */
 void ThirdMenuBatt()
 {
+  int gfxChar = 0xf7;        // Uses character map to generate "degrees" symbol
+  
   // Internal Temperature
   display.clearDisplay();
   display.setTextSize(1);
-  display.setCursor(7, 13);
-  display.println("BATTERY TEMP:");
+  display.setCursor(7, 14);
+  display.println("FEATHER TEMP:");
+  
   display.setTextSize(2);
-  display.setCursor(86, 8);
-  display.print(avgTempRead);
+  display.setCursor(86, 10);
+  display.print(avgTempRead); 
+  if (avgTempRead < 100) {
+  display.write(gfxChar);
+  }
+  
   display.display();
 }
 
@@ -483,7 +535,7 @@ void ButtonReader()
   else {
     analogWrite(mosfetPin, 0);
   }
-  delay(1);
+  delay(10);
 }
 
 /* Reset Button Counts */
@@ -571,7 +623,7 @@ void SetLEDColor()
     case 1:  
       setColor(0, 0, 255);                // Green
       display.println("MOJITOS");
-      colorB = 0;
+      colorB = 255;
       break;
     case 2:
       setColor(0, 255, 255);              // Red
@@ -659,12 +711,23 @@ void LowBattery()
         for (int i = 0; i <= 3; i++)
           Vibrate();
           lowBattWarn++;                        
-        }
+          display.clearDisplay();
+          display.invertDisplay(true);
+          display.setTextSize(2);
+          display.setTextColor(WHITE);
+          display.setCursor(15, 9);
+          display.println("LOW BATTERY");
+          display.display();
+          delay (1500);
+          display.clearDisplay();          
       }
-   }  
+    }
+  }  
+  
   else if (avgVoltRead > 3500) {
     lowBattWarn = 0;
   }  
+
 }
 
 /* Haptic Feedback Function *** Will use a piezo for now *** */
@@ -685,7 +748,7 @@ void Vibrate()
 /* The interrupt is handled after wakeup || Show wake screen while functions turn on */
 void WakeUpNow()
 {
-  // WakeScreen();   // Not sure why this isn't working
+  // Do Nothing 
 }
 
 /* Placeholder Screen while buttons come back online */
@@ -703,6 +766,7 @@ void WakeScreen()
 /* Setup ruptPin as an interrupt and attach handler. */
 void EnterSleep()
 {
+  // START SLEEP
   display.clearDisplay();
   display.invertDisplay(true);
   display.setTextSize(1);
@@ -711,18 +775,27 @@ void EnterSleep()
   display.println("Going to Sleep...");
   display.display();
   delay(750);
-  
-  display.setCursor(19, 13);
+
+  // GOODNIGHT
+  display.setCursor(15, 13);
   display.clearDisplay();
-  display.println(" ~ Goodnight ~ ");
+  display.write(0xF6);
+  display.write(0xF6);
+  display.write(0xF6);
+  display.print(" Goodnight ");
+  display.write(0xF6);
+  display.write(0xF6);
+  display.write(0xF6);
   display.display();
   delay(1500);
-  
+
+  // CLEAN DISPLAY
   display.invertDisplay(false);
   display.clearDisplay();
   display.display();
 
   sButtonCount = 0;
+  ledOff();
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
@@ -737,6 +810,10 @@ void EnterSleep()
 /* Piezeo sensor checks for motion - Replace function with actual seconds */
 void AutoSleepMode()
 {
+  if (sButtonCount >= 1) {
+    screenFlip = true;
+  }
+  
   mSensor = analogRead(motionPin);
   delay (1);
   prevMSensor = analogRead(motionPin);
@@ -750,14 +827,15 @@ void AutoSleepMode()
     gSeconds++;
   }
 
-  if (gSeconds > 10000)  {
+  if (gSeconds == screenSleep )  {
+    // StealthMode();
+    display.invertDisplay(false);    
     display.clearDisplay();
     display.display();
     sButtonCount = 0;
-//    sleep = true;
+    screenFlip = false;
   }
-  
-  if (gSeconds > timeSleep)  {
+  if (gSeconds > deepSleep)  {
     EnterSleep();
     gSeconds = 0;
   }
@@ -829,6 +907,11 @@ void Smooth()
   for (int i = 0; i < numReadings; i++)  {
     avgVoltRead = avgVoltRead + (battSingleRead - avgVoltRead) / numReadings;
   }
+
+  for (int i = 0; i < 175; i++)  {
+    avgTempRead = avgTempRead + (temperatureF - avgTempRead) / numReadings;
+  }
+  
   delay(1);
 }
 
@@ -853,13 +936,13 @@ void ReadTemp()
   //converting from 10 mv per degree wit 500 mV offset to degrees ((voltage - 500mV) times 100)
   float temperatureC = (voltage - 0.5) * 100;
 
-  temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;    // Change to F
+  temperatureF = (temperatureC * 9.0 / 5.0) + 32.0;    // Change to F (Line431)
 
-  avgTempRead = temperatureF;
+  avgTempRead = (int) temperatureF;                    // Truncate digits after decimal
 
   delay(1);
 
-  if (temperatureF >= 180) {
+  if (avgTempRead >= 180) {
 
     analogWrite(mosfetPin, 0);
 
@@ -903,4 +986,13 @@ void setColor(int red, int green, int blue)
   analogWrite(fireGpin, green);
   analogWrite(fireBpin, blue);
 }
+
+/* Shows the Product Logo Splash Screen */
+void ShowLogo() {
+  display.drawBitmap(0, 0, feather, 128, 32, 1);
+  display.display();
+  delay (3000);
+  display.clearDisplay(); 
+}  
+
 
