@@ -440,7 +440,7 @@ void MainMenu()
 
   // Hits Count (Conditional)                                                                       // **** BOOKMARK *** //
   if (preHeatOn == 0) {
-      display.drawFastVLine(95, 4, 26, WHITE);
+    display.drawFastVLine(95, 4, 26, WHITE);
     if (fButtonCount == 0) {
       display.println("NO");
     }
@@ -478,12 +478,12 @@ void ThirdMenuBatt()
   display.println("FEATHER TEMP:");
 
   display.setTextSize(2);
-  display.setCursor(86, 10);
+  display.setCursor(87, 10);
   display.print(avgTempRead);
   if (avgTempRead < 100) {
+    display.setTextSize(1);
     display.write(gfxChar);
   }
-
   display.display();
 }
 
@@ -508,7 +508,7 @@ void StealthMode()
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    Buttons - Read & Count                                                                  */
+/*    Buttons - Read & Count & Reset                                                          */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -581,6 +581,7 @@ void ResetCount()
   }
 }
 
+/* Checks if Buttons are Held */
 void HoldButton()
 {
   int minHoldTime = 50;
@@ -589,7 +590,7 @@ void HoldButton()
   if (fButtonState == LOW) {
     current = digitalRead(fireButtonE);
 
-    // if the button state changes to pressed, remember the start time
+    /* If the button state changes to pressed, remember the start time */
     if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
       firstTime = millis();
     }
@@ -601,16 +602,15 @@ void HoldButton()
 
       if (current == HIGH && previous == LOW) {
 
-        if (millis_held >= 350) {      /*Button held for more than x time*/
+        if (millis_held >= 350) {               /*Button held for more than x time*/
           fButtonCount++;
         }
       }
     }
   }
 
-  /* For Fire Button */
-
-  if (hButtonState == HIGH) {
+  /* For Hits Button */
+  if (hButtonState == LOW) {
     current = digitalRead(hitsButtonB);
 
     if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
@@ -624,18 +624,18 @@ void HoldButton()
 
       if (current == HIGH && previous == LOW) {
 
-        if (millis_held >= 600) {                                                  // **** BOOKMARK *** //
+        if (millis_held >= 1000) {
           fButtonCount = 0;
-
-          Serial.println("**************** B WAS HELD FOR TIME ********************");
+          Serial.println("**************** B WAS HELD FOR TIME ********************");                    // **** BOOKMARK *** //
+          // This function needs work above. Not sure why its hard to achieve.
         }
       }
     }
   }
+
   previous = current;
   prev_secs_held = secs_held;
 }
-
 
 /* ===========================================================================================*/
 /*                                                                                            */
@@ -643,11 +643,7 @@ void HoldButton()
 /*                                                                                            */
 /* ===========================================================================================*/
 
-void FlipHeat() {
-  preHeatStage = !preHeatStage;
-}
-
-/* Turns off external "Fire" LED */
+/* Turns off external "Fire" LED & Button LED */
 void ledOff()
 {
   analogWrite(fireRpin, 255);
@@ -656,6 +652,7 @@ void ledOff()
   digitalWrite(fireButtonLED, LOW);
 }
 
+/* Counts Secondary Button Presses on 'C' Button & Sets LED Color */
 void SetLEDColor()
 {
   display.setTextSize(2);
@@ -665,6 +662,7 @@ void SetLEDColor()
   colorG = 0;
   colorB = 0;
 
+  /* Colors */
   switch (chButtonCount) {
     case 0:
       setColor(0, 255, 0);                // Purple
@@ -744,18 +742,16 @@ void TempAdjust()
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    PRE-HEATING                                                                             */     // **** BOOKMARK *** //
+/*    PRE-HEATING                                                                             */
 /*                                                                                            */
 /* ===========================================================================================*/
 
 /* Lightly Heat Coil */
 void HeatCoil()
 {
-  /*
-    if (preHeatStage = true) {
-      analogWrite(mosfetPin, 50);                   // Figure out a good number for this
-    }
-  */
+  if (preHeatStage = true) {
+    analogWrite(mosfetPin, 50);                   // Figure out a good number for this
+  }
 }
 
 /* Displays Simple Text about coil */
@@ -856,115 +852,87 @@ void PreHeat()
 /* Adds pre-heat text and animation to main screen (replaces hits when active) */
 void StaticHeatDisplay()
 {
-  int baseCursorY = 7;
-  int baseCursorX = 101;
+  if (sButtonCount <= 2) {
+    int baseCursorY = 7;
+    int baseCursorX = 101;
 
-  // Display Text
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(baseCursorX + 1, baseCursorY + 9);
-  display.println("PRE");
-  display.setCursor(baseCursorX - 1, baseCursorY + 18);
-  display.println("HEAT");
+    // Display Text
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(baseCursorX + 1, baseCursorY + 8);
+    display.println("PRE");
+    display.setCursor(baseCursorX - 1, baseCursorY + 17);
+    display.println("HEAT");
 
-  display.setCursor(baseCursorX, baseCursorY);
-  display.write(0xA9);
-  display.setCursor(baseCursorX + 2, baseCursorY);
-  display.write(0x1D);
-  display.setCursor(baseCursorX + 7, baseCursorY);
-  display.write(0x1D);
-  display.setCursor(baseCursorX + 12, baseCursorY);
-  display.write(0x1D);
-  display.setCursor(baseCursorX + 14, baseCursorY);
-  display.write(0xAA);
+    // Display Icons
+    display.setCursor(baseCursorX, baseCursorY);
+    display.write(0xA9);
+    display.setCursor(baseCursorX + 2, baseCursorY);
+    display.write(0x1D);
+    display.setCursor(baseCursorX + 7, baseCursorY);
+    display.write(0x1D);
+    display.setCursor(baseCursorX + 12, baseCursorY);
+    display.write(0x1D);
+    display.setCursor(baseCursorX + 14, baseCursorY);
+    display.write(0xAA);
+  }
 }
 
-/* Pre-Heating Stage:  [0] 1 2 */ 
+/* Pre-Heating Function */
 void PreHeatDisplay()
 {
+  /* Pre-Heating Stage:  [0] 1 2 */
   while (preHeatOn == 1 && preHeatStage == 0) {
-
     HeatCoil();           // Begin Heating Actual Coil
-
     preHeatStage = 1;
-
-    unsigned long TimerA;
-    TimerA = millis();
-
-    unsigned long  timerCount = 150000UL;
-    /*
-    int x = 106;
-    int y = 10;
-
-        display.setTextSize(2);
-
-        display.setCursor(x, y);
-        display.print("3");
-        display.display();
-        if (millis() - TimerA > 0 && TimerA < timerCount) {
-          display.clearDisplay();
-        }
-
-        display.setCursor(x, y);
-        display.print("2");
-        display.display();
-        if (millis() - TimerA > timerCount && TimerA < timerCount * 2) {
-          display.clearDisplay();
-        }
-
-        display.setCursor(x, y);
-        display.print("1");
-        display.display();
-        if (millis() - TimerA > timerCount * 2 && TimerA < timerCount * 3) {
-          display.clearDisplay();
-        }
-    */
   }
 
-/* Pre-Heating Stage:  0 [1] 2 */
+  /* Pre-Heating Stage:  0 [1] 2 */
   if (preHeatOn == 1 && preHeatStage == 1) {
     PreHeat();
     preHeatStage = 2;
   }
 
-/* Pre-Heating Stage: 0 1 [2] */
-  if (preHeatOn == 1 && preHeatStage == 2) {
+  /* Pre-Heating Stage: 0 1 [2] */
+  if (preHeatOn == 1 && preHeatStage == 2 ) {     /* && sButtonCount <= 3 if you dont want this on stealth screen */
     int baseCursorY = 5;
     int baseCursorX = 101;
 
+    /* Displays Bottom Coil (Not Heat) */
     StaticHeatDisplay();
 
+    /* Animate Heat from Coils in Pre-Heat Section */
     if (iCount <= 5) {
-    display.setCursor(baseCursorX, baseCursorY - 1);
-    display.write(0x7E);
-    display.setCursor(baseCursorX + 7, baseCursorY - 3);
-    display.write(0x7E);
-    display.setCursor(baseCursorX + 15, baseCursorY - 1);
-    display.write(0x7E);
-    display.display();
-    iCount++;
+      display.setCursor(baseCursorX, baseCursorY - 1);
+      display.write(0x7E);
+      display.setCursor(baseCursorX + 7, baseCursorY - 3);
+      display.write(0x7E);
+      display.setCursor(baseCursorX + 15, baseCursorY - 1);
+      display.write(0x7E);
+      display.display();
+      iCount++;
     }
 
     if (iCount > 5 && iCount <= 20) {
-    display.setCursor(baseCursorX, baseCursorY - 3);
-    display.write(0x7E);
-    display.setCursor(baseCursorX + 7, baseCursorY - 4);
-    display.write(0x7E);
-    display.setCursor(baseCursorX + 15, baseCursorY - 3);
-    display.write(0x7E);
-    display.display();    
-    iCount++;
-    }    
+      display.setCursor(baseCursorX, baseCursorY - 3);
+      display.write(0x7E);
+      display.setCursor(baseCursorX + 7, baseCursorY - 4);
+      display.write(0x7E);
+      display.setCursor(baseCursorX + 15, baseCursorY - 3);
+      display.write(0x7E);
+      display.display();
+      iCount++;
+    }
 
     if (iCount > 20 && iCount <= 30) {
       for (int i = 0; i <= 10; i++) {
         display.setCursor(baseCursorX + 7, baseCursorY - 4);
         display.write(0x7E);
         display.display();
-      }    
+      }
       iCount = 0;
-    } 
-  }      
+    }
+  }
   display.display();
   display.clearDisplay();
 }
@@ -1025,6 +993,7 @@ void Vibrate()
 /* The interrupt is handled after wakeup || Show wake screen while functions turn on */
 void WakeUpNow()
 {
+  // WakeScreen(); This function is not working so...
   // Do Nothing
 }
 
@@ -1084,9 +1053,10 @@ void EnterSleep()
   detachInterrupt(0);
 }
 
-/* Piezeo sensor checks for motion - Replace function with actual seconds */
+/* Piezeo sensor checks for motion */
 void AutoSleepMode()
 {
+  /* Corrects Screen Inversion */
   if (sButtonCount >= 1) {
     screenFlip = true;
   }
@@ -1104,14 +1074,16 @@ void AutoSleepMode()
     gSeconds++;
   }
 
+  /* Sleep Screen Only */
   if (gSeconds == screenSleep )  {
-    // StealthMode();
     display.invertDisplay(false);
     display.clearDisplay();
     display.display();
     sButtonCount = 0;
     screenFlip = false;
   }
+
+  /* Sleep Entire Device */
   if (gSeconds > deepSleep)  {
     EnterSleep();
     gSeconds = 0;
@@ -1120,7 +1092,7 @@ void AutoSleepMode()
 
 /* ===========================================================================================*/
 /*                                                                                            */
-/*    Fire Vape / Coil                                                                        */
+/*    Fire Vape Coil & LED's                                                                  */
 /*                                                                                            */
 /* ===========================================================================================*/
 
@@ -1142,6 +1114,7 @@ void FireCoil()
 
       digitalWrite(fireButtonLED, HIGH);
 
+      /* Set RGB LED Color */
       analogWrite(fireRpin, colorR);
       analogWrite(fireGpin, colorG);
       analogWrite(fireBpin, colorB);
@@ -1151,13 +1124,12 @@ void FireCoil()
   else  {
     analogWrite(mosfetPin, 0);
     analogWrite(fireBpin, 0);
-    ledOff();
     display.clearDisplay();
+    ledOff();
   }
 
   delay(1);
 }
-
 
 /* ===========================================================================================*/
 /*                                                                                            */
@@ -1197,11 +1169,14 @@ void Smooth()
 /* Updates Battery Icon & Sets #*/
 void BattAdjust()
 {
-  battRead = map(avgVoltRead, 2750, 4200, 0, 99);
-  int battLines = map(battRead, 0, 99, 1, 17);
+  if (sButtonCount != 4) {
 
-  for (int i = 0; i <= battLines; i++)
-    display.drawFastHLine(battStartX, battStartY - i, battWidth, 1);
+    battRead = map(avgVoltRead, 2750, 4200, 0, 99);
+    int battLines = map(battRead, 0, 99, 1, 17);
+
+    for (int i = 0; i <= battLines; i++)
+      display.drawFastHLine(battStartX, battStartY - i, battWidth, 1);
+  }
 }
 
 /* Reads Temp Sensor & Shuts Down Functions if Too Hot*/
@@ -1274,4 +1249,4 @@ void ShowLogo() {
   display.clearDisplay();
 }
 
-
+// **** BOOKMARK *** //
